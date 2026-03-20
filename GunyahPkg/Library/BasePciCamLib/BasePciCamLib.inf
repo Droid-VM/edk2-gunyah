@@ -1,0 +1,30 @@
+## @file
+#  PCI Express Library using MMIO with CAM (256 bytes per function) addressing.
+#
+#  This library converts ECAM-encoded PCI addresses to CAM layout and
+#  performs MMIO accesses accordingly.  It implements the PciExpressLib class
+#  so it can be used as a drop-in replacement for BasePciExpressLib on
+#  platforms that only have a CAM (not ECAM) PCI configuration space.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = BasePciCamLib
+  FILE_GUID                      = a3e4a529-f356-4aab-88c7-7c5e1d46212f
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = PciExpressLib
+
+[Sources]
+  PciCamLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  IoLib

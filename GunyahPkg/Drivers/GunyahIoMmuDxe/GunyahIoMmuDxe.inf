@@ -1,0 +1,43 @@
+## @file
+#  Gunyah IOMMU DXE driver for protected VM DMA isolation.
+#
+#  Implements EDKII_IOMMU_PROTOCOL by allocating all DMA buffers from the
+#  FDT "restricted-dma-pool" region, ensuring the host VMM can access
+#  virtio queue and data memory in Gunyah protected VM mode.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 1.25
+  BASE_NAME                      = GunyahIoMmuDxe
+  FILE_GUID                      = a3b1c5d7-9e2f-4a6b-8c0d-1e3f5a7b9d2e
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = GunyahIoMmuDxeEntryPoint
+
+[Sources]
+  GunyahIoMmuDxe.c
+  DmaPool.c
+  DmaPool.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEdkiiIoMmuProtocolGuid        ## PRODUCES
+  gFdtClientProtocolGuid         ## CONSUMES
+
+[Depex]
+  gFdtClientProtocolGuid

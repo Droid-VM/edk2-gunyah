@@ -1,0 +1,13 @@
+Build/
+.DS_Store
+*_extdep/
+*.pyc
+__pycache__/
+tags/
+.vscode/
+.venv/
+.cache/
+/build
+/edk2-gunyah.fd
+/edk2-gunyah.vars.fd
+/compile_commands.json
