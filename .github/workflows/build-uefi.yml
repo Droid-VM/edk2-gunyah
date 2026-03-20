@@ -13,7 +13,7 @@ jobs:
       matrix:
         build_type: [DEBUG, RELEASE]
     env:
-      BUILD_TYPE: ${{ matrix.build_type }}
+      EDK2_TARGET: ${{ matrix.build_type }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,7 +27,7 @@ jobs:
         run: |
           chmod +x ./build.sh
           set -e
-          echo "Build type: $BUILD_TYPE"
+          echo "Build type: $EDK2_TARGET"
           ./build.sh
 
       - name: Prepare artifacts
@@ -35,8 +35,8 @@ jobs:
           set -e
           ART1=edk2-gunyah.fd
           ART2=edk2-gunyah.vars.fd
-          if [ -f "$ART1" ]; then cp "$ART1" "edk2-gunyah-${BUILD_TYPE}.fd"; fi
-          if [ -f "$ART2" ]; then cp "$ART2" "edk2-gunyah-${BUILD_TYPE}.vars.fd"; fi
+          if [ -f "$ART1" ]; then cp "$ART1" "edk2-gunyah-${EDK2_TARGET}.fd"; fi
+          if [ -f "$ART2" ]; then cp "$ART2" "edk2-gunyah-${EDK2_TARGET}.vars.fd"; fi
           ls -la
 
       - name: Upload artifacts
