@@ -6,11 +6,17 @@ UEFI Firmware for crosvm + gunyah virtualization platform
 
 Install the arm64 cross compiler toolchain (e.g. `aarch64-linux-gnu-gcc`) and iasl(e.g. `acpica-tools`).
 
+- Build **Release** Variant:
 ```bash
 ./build.sh
 ```
 
-Artifacts named `edk2-gunyah.fd`
+- Build **Debug** Variant:
+```bash
+EDK2_TARGET=DEBUG ./build.sh
+```
+
+Artifacts named `edk2-gunyah.fd`.
 
 ## Running
 
