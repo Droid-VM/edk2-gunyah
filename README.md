@@ -4,7 +4,7 @@ UEFI Firmware for crosvm + gunyah virtualization platform
 
 ## Quick build
 
-Install the arm64 cross compiler toolchain (e.g. `aarch64-linux-gnu-gcc`).
+Install the arm64 cross compiler toolchain (e.g. `aarch64-linux-gnu-gcc`) and iasl(e.g. `acpica-tools`).
 
 ```bash
 ./build.sh
