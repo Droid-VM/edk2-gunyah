@@ -38,7 +38,7 @@ Artifacts named `edk2-gunyah.fd`.
 - **Qualcomm Snapdragon 8 Elite Gen 5** (SM8850)
 - **Qualcomm Snapdragon 8 Elite** (SM8750)
 
-### Phones
+### Devices
 
 - **Xiaomi Redmi K90 Pro Max** (codename "myron", with SM8850)
 - **Lenovo Y700 Gen4** (codename "tb322fc", with SM8750)
