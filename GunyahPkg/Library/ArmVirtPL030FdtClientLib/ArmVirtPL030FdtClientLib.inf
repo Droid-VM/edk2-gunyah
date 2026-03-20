@@ -1,0 +1,43 @@
+#/** @file
+#  FDT client library for ARM's PL030 RTC driver
+#
+#  Copyright (c) 2016, Linaro Ltd. All rights reserved.
+#  Copyright (c) 2026, Kancy Joe. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = ArmVirtPL030FdtClientLib
+  FILE_GUID                      = 2D17EA32-8CB1-1264-9212-CA19659CA001
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = ArmVirtPL030FdtClientLib|DXE_DRIVER DXE_RUNTIME_DRIVER
+  CONSTRUCTOR                    = ArmVirtPL030FdtClientLibConstructor
+
+[Sources]
+  ArmVirtPL030FdtClientLib.c
+
+[Packages]
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  ArmVirtPkg/ArmVirtPkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  GunyahPkg/GunyahPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  PcdLib
+  UefiBootServicesTableLib
+
+[Protocols]
+  gFdtClientProtocolGuid                                ## CONSUMES
+
+[Pcd]
+  gGunyahTokenSpaceGuid.PcdPL030RtcBase
+
+[Depex]
+  gFdtClientProtocolGuid
