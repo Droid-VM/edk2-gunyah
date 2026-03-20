@@ -55,6 +55,10 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   ArmVirt uses `pci-host-ecam-generic`, crosvm uses `pci-host-cam-generic`.
 
+- PL030 Real Time Clock
+
+  ArmVirt uses pl031, crosvm uses pl030.
+
 - VirtioLib
 
   ArmVirt's VirtioLib lack of swiotlb supports.
