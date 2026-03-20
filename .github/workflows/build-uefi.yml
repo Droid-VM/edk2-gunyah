@@ -1,0 +1,48 @@
+name: Build GunyahPkg
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.build_type }})
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        build_type: [DEBUG, RELEASE]
+    env:
+      BUILD_TYPE: ${{ matrix.build_type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y iasl gcc uuid-dev
+
+      - name: Build
+        run: |
+          chmod +x ./build.sh
+          set -e
+          echo "Build type: $BUILD_TYPE"
+          ./build.sh
+
+      - name: Prepare artifacts
+        run: |
+          set -e
+          ART1=edk2-gunyah.fd
+          ART2=edk2-gunyah.vars.fd
+          if [ -f "$ART1" ]; then cp "$ART1" "edk2-gunyah-${BUILD_TYPE}.fd"; fi
+          if [ -f "$ART2" ]; then cp "$ART2" "edk2-gunyah-${BUILD_TYPE}.vars.fd"; fi
+          ls -la
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: edk2-gunyah-${{ matrix.build_type }}
+          path: |
+            edk2-gunyah-${{ matrix.build_type }}.fd
+            edk2-gunyah-${{ matrix.build_type }}.vars.fd
