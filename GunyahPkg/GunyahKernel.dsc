@@ -248,8 +248,8 @@
   gArmTokenSpaceGuid.PcdGicRedistributorsBase|0x0
   gArmTokenSpaceGuid.PcdGicInterruptInterfaceBase|0x0
 
-  ## PL031 RealTimeClock
-  gArmPlatformTokenSpaceGuid.PcdPL031RtcBase|0x0
+  ## PL030 RealTimeClock
+  gGunyahTokenSpaceGuid.PcdPL030RtcBase|0x0
 
   # set PcdPciExpressBaseAddress to MAX_UINT64, which signifies that this
   # PCD and PcdPciDisableBusEnumeration above have not been assigned yet
@@ -342,7 +342,7 @@
   MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
   EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf {
     <LibraryClasses>
-      NULL|ArmVirtPkg/Library/ArmVirtPL031FdtClientLib/ArmVirtPL031FdtClientLib.inf
+      NULL|GunyahPkg/Library/ArmVirtPL030FdtClientLib/ArmVirtPL030FdtClientLib.inf
   }
   EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf
 

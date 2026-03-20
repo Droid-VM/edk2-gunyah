@@ -96,8 +96,8 @@
   MemoryInitPeiLib|GunyahPkg/Library/GunyahMemoryInitPeiLib/GunyahMemoryInitPeiLib.inf
   ResetSystemLib|ArmPkg/Library/ArmPsciResetSystemLib/ArmPsciResetSystemLib.inf
 
-  # ARM PL031 RTC Driver
-  RealTimeClockLib|ArmPlatformPkg/Library/PL031RealTimeClockLib/PL031RealTimeClockLib.inf
+  # ARM PL030 RTC Driver
+  RealTimeClockLib|GunyahPkg/Library/PL030RealTimeClockLib/PL030RealTimeClockLib.inf
   TimeBaseLib|EmbeddedPkg/Library/TimeBaseLib/TimeBaseLib.inf
   SerialPortLib|GunyahPkg/Library/PatchedSerialPortLib16550/PatchedSerialPortLib16550.inf
   FdtSerialPortAddressLib|OvmfPkg/Library/FdtSerialPortAddressLib/FdtSerialPortAddressLib.inf
