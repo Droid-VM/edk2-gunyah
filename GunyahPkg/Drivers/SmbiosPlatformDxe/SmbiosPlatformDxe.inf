@@ -31,6 +31,7 @@
 
 [LibraryClasses]
   ArmLib
+  ArmGenericTimerCounterLib
   UefiBootServicesTableLib
   MemoryAllocationLib
   BaseMemoryLib

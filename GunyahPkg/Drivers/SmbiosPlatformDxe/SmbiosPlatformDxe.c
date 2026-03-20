@@ -18,12 +18,12 @@
 #include <Guid/SmBios.h>
 #include <IndustryStandard/SmBios.h>
 #include <Library/ArmLib.h>
+#include <Library/ArmGenericTimerCounterLib.h>
 #include <Library/BaseLib.h>
 #include <Library/PcdLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/PcdLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiDriverEntryPoint.h>
@@ -498,10 +498,12 @@ LogSmbiosData(
   // Append string pack
   Str = ((CHAR8 *)Record) + Record->Length;
 
-  for (Index = 0; StringPack[Index] != NULL; Index++) {
-    StringSize = AsciiStrSize(StringPack[Index]);
-    CopyMem(Str, StringPack[Index], StringSize);
-    Str += StringSize;
+  if (StringPack != NULL) {
+    for (Index = 0; StringPack[Index] != NULL; Index++) {
+      StringSize = AsciiStrSize(StringPack[Index]);
+      CopyMem(Str, StringPack[Index], StringSize);
+      Str += StringSize;
+    }
   }
 
   *Str         = 0;
@@ -517,6 +519,84 @@ LogSmbiosData(
   return Status;
 }
 
+/**
+  Estimate the CPU frequency in MHz using the PMU cycle counter (PMCCNTR_EL0)
+  and the ARM generic system counter (CNTPCT_EL0).
+
+  The function enables the PMU cycle counter, waits for approximately 10 ms
+  as measured by the system counter, then computes:
+    CPU MHz = DeltaCycles * CntFreq / (DeltaTicks * 1,000,000)
+
+  @return  Estimated CPU frequency in MHz, or 0 if measurement failed.
+**/
+STATIC
+UINT32
+EstimateCpuFrequencyMHz (
+  VOID
+  )
+{
+  UINT64  StartTicks, EndTicks, WaitTicks;
+  UINT64  StartCycles, EndCycles;
+  UINT64  DeltaTicks, DeltaCycles;
+  UINT64  PmcrVal, FreqMHz, Dfr0, CntFreq;
+
+  CntFreq = ArmGenericTimerGetTimerFreq ();
+  if (CntFreq == 0) {
+    return 0;
+  }
+
+  // Check PMUVer in ID_AA64DFR0_EL1 bits[11:8]; 0 means PMU is not implemented
+  // (e.g. disabled by the hypervisor via crosvm --no-pmu).
+  asm volatile ("mrs %0, id_aa64dfr0_el1" : "=r" (Dfr0));
+  if (((Dfr0 >> 8) & 0xFULL) == 0) {
+    DEBUG ((DEBUG_INFO, "%a: PMU not available, skipping CPU frequency estimation\n", __func__));
+    return 0;
+  }
+
+  // Enable PMU cycle counter:
+  //   PMCR_EL0 bit 0 (E) = enable all counters
+  //   PMCR_EL0 bit 2 (C) = reset cycle counter
+  asm volatile ("mrs %0, pmcr_el0" : "=r" (PmcrVal));
+  PmcrVal |= (1ULL << 0) | (1ULL << 2);
+  asm volatile ("msr pmcr_el0, %0" : : "r" (PmcrVal));
+  // PMCNTENSET_EL0 bit 31 = enable cycle counter
+  asm volatile ("msr pmcntenset_el0, %0" : : "r" (1ULL << 31));
+  asm volatile ("isb");
+
+  // Wait ~10 ms by spinning on the system counter
+  WaitTicks = DivU64x32 (CntFreq, 100);
+
+  asm volatile ("mrs %0, pmccntr_el0" : "=r" (StartCycles));
+  StartTicks = ArmGenericTimerGetSystemCount ();
+
+  do {
+    EndTicks = ArmGenericTimerGetSystemCount ();
+  } while ((EndTicks - StartTicks) < WaitTicks);
+
+  asm volatile ("mrs %0, pmccntr_el0" : "=r" (EndCycles));
+
+  DeltaTicks  = EndTicks  - StartTicks;
+  DeltaCycles = EndCycles - StartCycles;
+
+  if (DeltaTicks == 0 || DeltaCycles == 0) {
+    return 0;
+  }
+
+  // CPU MHz = DeltaCycles * CntFreq / (DeltaTicks * 1,000,000)
+  FreqMHz = DivU64x64Remainder (
+              MultU64x64 (DeltaCycles, CntFreq),
+              MultU64x64 (DeltaTicks, 1000000ULL),
+              NULL
+              );
+
+  // Sanity-check: reject implausible values (< 100 MHz or > 10 GHz)
+  if (FreqMHz < 100 || FreqMHz > 10000) {
+    return 0;
+  }
+
+  return (UINT32)FreqMHz;
+}
+
 STATIC
 VOID
 LogCpuInfo(
@@ -526,7 +606,8 @@ LogCpuInfo(
   EFI_STATUS Status;
   INT32 Node;
   UINT32 Count = 0;
-  
+  UINT32 FreqMHz;
+
   Status = FdtClient->FindCompatibleNode (
     FdtClient, "arm,armv8", &Node
   );
@@ -541,6 +622,13 @@ LogCpuInfo(
     DEBUG((DEBUG_INFO, "%a: Found %u CPU nodes\n", __func__, Count));
     mProcessorInfoType4.CoreCount = Count;
     mProcessorInfoType4.EnabledCoreCount = Count;
+  }
+
+  FreqMHz = EstimateCpuFrequencyMHz ();
+  if (FreqMHz != 0) {
+    DEBUG ((DEBUG_INFO, "%a: Estimated CPU frequency: %u MHz\n", __func__, FreqMHz));
+    mProcessorInfoType4.CurrentSpeed = (UINT16)FreqMHz;
+    mProcessorInfoType4.MaxSpeed     = (UINT16)FreqMHz;
   }
 
   // TYPE4 Processor Information
@@ -561,6 +649,8 @@ LogMemoryInfo(
   UINT32 RegSize;
   UINTN AddressCells, SizeCells;
   UINT64 CurBase, CurSize;
+  UINT64 TotalSize = 0;
+  UINT64 TotalSizeInMB;
 
   Status = FdtClient->FindMemoryNodeReg (
     FdtClient, &Node, (CONST VOID **)&Reg,
@@ -578,6 +668,7 @@ LogMemoryInfo(
       if (SizeCells > 1)
         CurSize = (CurSize << 32) | SwapBytes32 (*Reg++);
       RegSize -= (AddressCells + SizeCells) * sizeof (UINT32);
+      TotalSize += CurSize;
 
       DEBUG ((DEBUG_INFO,
         "%a: Found memory region: 0x%llx - 0x%llx (length: 0x%llx)\n",
@@ -586,7 +677,7 @@ LogMemoryInfo(
 
       // TYPE19 Memory Array Map Information
       mMemArrMapInfoType19.StartingAddress = RShiftU64(CurBase, 10);
-      mMemArrMapInfoType19.EndingAddress = mMemArrMapInfoType19.StartingAddress + RShiftU64(CurSize, 10);
+      mMemArrMapInfoType19.EndingAddress = RShiftU64(CurBase + CurSize - 1, 10);
       LogSmbiosData(
           (EFI_SMBIOS_TABLE_HEADER *)&mMemArrMapInfoType19,
           mMemArrMapInfoType19Strings, NULL);
@@ -597,6 +688,22 @@ LogMemoryInfo(
       &AddressCells, &SizeCells, &RegSize
     );
   }
+
+  // TYPE17 Memory Device Information - update size from FDT then log
+  if (TotalSize > 0) {
+    TotalSizeInMB = RShiftU64(TotalSize, 20);
+    if (TotalSizeInMB >= 0x7FFF) {
+      // Size >= 32767 MB: use ExtendedSize field per SMBIOS spec
+      mMemDevInfoType17.Size = 0x7FFF;
+      mMemDevInfoType17.ExtendedSize = (UINT32)TotalSizeInMB;
+    } else {
+      mMemDevInfoType17.Size = (UINT16)TotalSizeInMB;
+    }
+    mMemDevInfoType17.VolatileSize = TotalSize;
+  }
+  LogSmbiosData(
+      (EFI_SMBIOS_TABLE_HEADER *)&mMemDevInfoType17, mMemDevInfoType17Strings,
+      NULL);
 }
 
 EFI_STATUS
@@ -650,11 +757,6 @@ SmbiosPlatformDriverEntryPoint(
       mPhyMemArrayInfoType16Strings, &SmbiosHandle);
   mMemArrMapInfoType19.MemoryArrayHandle = SmbiosHandle;
   mMemDevInfoType17.MemoryArrayHandle    = SmbiosHandle;
-
-  // TYPE17 Memory Device Information
-  LogSmbiosData(
-      (EFI_SMBIOS_TABLE_HEADER *)&mMemDevInfoType17, mMemDevInfoType17Strings,
-      NULL);
 
   LogCpuInfo(FdtClient);
   LogMemoryInfo(FdtClient);
