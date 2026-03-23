@@ -50,6 +50,8 @@
 
 !include NetworkPkg/NetworkDefines.dsc.inc
 
+!include DynamicTablesPkg/DynamicTables.dsc.inc
+
 !include MdePkg/MdeLibs.dsc.inc
 
 # This comes at the end of includes to pick all relevant components without any
@@ -92,6 +94,9 @@
 
   ArmMonitorLib|ArmVirtPkg/Library/ArmVirtMonitorLib/ArmVirtMonitorLib.inf
   ArmTrngLib|ArmPkg/Library/ArmTrngLib/ArmTrngLib.inf
+  PL011UartLib|ArmPlatformPkg/Library/PL011UartLib/PL011UartLib.inf
+  HwInfoParserLib|DynamicTablesPkg/Library/FdtHwInfoParserLib/FdtHwInfoParserLib.inf
+  DynamicPlatRepoLib|DynamicTablesPkg/Library/Common/DynamicPlatRepoLib/DynamicPlatRepoLib.inf
 
 [LibraryClasses.common.DXE_DRIVER]
   AcpiPlatformLib|OvmfPkg/Library/AcpiPlatformLib/DxeAcpiPlatformLib.inf
@@ -489,5 +494,6 @@
     <LibraryClasses>
       NULL|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
   }
+  ArmVirtPkg/KvmtoolCfgMgrDxe/ConfigurationManagerDxe.inf
 
   GunyahPkg/Drivers/GunyahPlatformDxe/GunyahPlatformDxe.inf

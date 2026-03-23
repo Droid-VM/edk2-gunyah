@@ -147,6 +147,8 @@ READ_LOCK_STATUS   = TRUE
   INF OvmfPkg/PlatformHasAcpiDtDxe/PlatformHasAcpiDtDxe.inf
 !if $(ARCH) == AARCH64
   INF MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
+  !include DynamicTablesPkg/DynamicTables.fdf.inc
+  INF ArmVirtPkg/KvmtoolCfgMgrDxe/ConfigurationManagerDxe.inf
   INF MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
   INF OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
 !endif
