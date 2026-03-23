@@ -474,6 +474,10 @@
   # Video support
   #
   OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
+  #GunyahPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf {
+  #  <LibraryClasses>
+  #  NULL|GunyahPkg/Library/SimpleFbFdtClientLib/SimpleFbFdtClientLib.inf
+  #}
   GunyahPkg/Drivers/GunyahVirtioGpuDxe/GunyahVirtioGpu.inf
   OvmfPkg/PlatformDxe/Platform.inf
 
