@@ -1,0 +1,56 @@
+#/** @file
+#  SimpleFbDxe: Simple FrameBuffer
+#
+#  Copyright (c) DuoWoA authors. All rights reserved.
+#  Copyright (c) AlohaWoA authors. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = SimpleFbDxe
+  FILE_GUID                      = dcfd1e6d-788d-4ffc-8e1b-ca2f75651a92
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = SimpleFbDxeInitialize
+
+[Sources.common]
+  SimpleFbDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ArmPkg/ArmPkg.dec
+  GunyahPkg/GunyahPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  ReportStatusCodeLib
+  UefiLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  BaseMemoryLib
+  DebugLib
+  CacheMaintenanceLib
+  FrameBufferBltLib
+  PcdLib
+
+[Protocols]
+  gEfiGraphicsOutputProtocolGuid ## PRODUCES
+  gEfiCpuArchProtocolGuid
+
+
+[Guids]
+  gEfiMdeModulePkgTokenSpaceGuid
+
+[Pcd]
+  gGunyahTokenSpaceGuid.PcdFrameBufferWidth
+  gGunyahTokenSpaceGuid.PcdFrameBufferHeight
+  gGunyahTokenSpaceGuid.PcdFrameBufferBaseAddress
+
+[Depex]
+  gEfiCpuArchProtocolGuid
+
