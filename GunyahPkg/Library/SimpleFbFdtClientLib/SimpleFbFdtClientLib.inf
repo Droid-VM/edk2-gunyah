@@ -1,0 +1,42 @@
+#/** @file
+#  FDT client library for Simple Framebuffer driver
+#
+#  Copyright (c) 2026, Kancy Joe. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = SimpleFbFdtClientLib
+  FILE_GUID                      = Eb1EAA04-5103-4916-B827-E01F1388174D
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SimpleFbFdtClientLib|DXE_DRIVER DXE_RUNTIME_DRIVER
+  CONSTRUCTOR                    = SimpleFbFdtClientLibConstructor
+
+[Sources]
+  SimpleFbFdtClientLib.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  GunyahPkg/GunyahPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  PcdLib
+  UefiBootServicesTableLib
+
+[Protocols]
+  gFdtClientProtocolGuid                                ## CONSUMES
+
+[Pcd]
+  gGunyahTokenSpaceGuid.PcdFrameBufferWidth
+  gGunyahTokenSpaceGuid.PcdFrameBufferHeight
+  gGunyahTokenSpaceGuid.PcdFrameBufferBaseAddress
+
+[Depex]
+  gFdtClientProtocolGuid
