@@ -16,10 +16,72 @@
 #include <Library/HobLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PeiServicesLib.h>
-// #include <Library/FdtSerialPortAddressLib.h>
-
 #include <Guid/Early16550UartBaseAddress.h>
 #include <Guid/FdtHob.h>
+
+STATIC
+UINT64
+ReadFdtCells (
+  IN CONST UINT32  *Prop,
+  IN INT32         NumCells
+  )
+{
+  if (NumCells == 2) {
+    return ((UINT64)Fdt32ToCpu (Prop[0]) << 32) | Fdt32ToCpu (Prop[1]);
+  }
+
+  return Fdt32ToCpu (Prop[0]);
+}
+
+STATIC
+VOID
+BuildReservedMemoryHob (
+  VOID *FdtBase
+  )
+{
+  INT32        RsvdNode;
+  INT32        SubNode;
+  INT32        AddrCells;
+  INT32        SizeCells;
+  INT32        PropLen;
+  CONST UINT32 *RegProp;
+
+  RsvdNode = FdtPathOffset (FdtBase, "/reserved-memory");
+  if (RsvdNode < 0) {
+    DEBUG ((DEBUG_WARN, "%a: /reserved-memory not found\n", __func__));
+    return;
+  }
+
+  AddrCells = FdtAddressCells (FdtBase, RsvdNode);
+  SizeCells = FdtSizeCells (FdtBase, RsvdNode);
+  if ((AddrCells < 1) || (SizeCells < 1)) {
+    DEBUG ((DEBUG_ERROR, "%a: invalid #address-cells/%a-cells\n", __func__, "#size"));
+    return;
+  }
+
+  FdtForEachSubnode (SubNode, FdtBase, RsvdNode) {
+    EFI_PHYSICAL_ADDRESS  Base;
+    UINT64                Size;
+
+    RegProp = FdtGetProp (FdtBase, SubNode, "reg", &PropLen);
+    if ((RegProp == NULL) || (PropLen < (AddrCells + SizeCells) * (INT32)sizeof (UINT32))) {
+      continue;
+    }
+
+    Base = ReadFdtCells (RegProp, AddrCells);
+    Size = ReadFdtCells (RegProp + AddrCells, SizeCells);
+
+    DEBUG ((
+      DEBUG_INFO,
+      "%a: reserved region %a @ 0x%lx size 0x%lx\n",
+      __func__,
+      FdtGetName(FdtBase, SubNode, NULL),
+      Base, Size
+      ));
+
+    BuildMemoryAllocationHob (Base, Size, EfiReservedMemoryType);
+  }
+}
 
 EFI_STATUS
 EFIAPI
@@ -33,8 +95,6 @@ PlatformPeim (
   UINTN                     FdtPages;
   UINT64                    *FdtHobData;
   UINT64                    *UartHobData;
-  // FDT_SERIAL_PORTS          Ports;
-  // EFI_STATUS                Status;
 
   Base = (VOID *)(UINTN)PcdGet64 (PcdDeviceTreeInitialBaseAddress);
   ASSERT (Base != NULL);
@@ -57,37 +117,9 @@ PlatformPeim (
   *UartHobData = PcdGet64 (PcdSerialRegisterBase);
   DEBUG ((DEBUG_INFO, "%a: NS16550A UART @ 0x%lx\n", __func__, *UartHobData));
 
-  // Status = FdtSerialGetPorts (Base, "ns16550a", &Ports);
-  // if (!EFI_ERROR (Status)) {
-  //   if (Ports.NumberOfPorts == 1) {
-  //     //
-  //     // Just one UART; direct both SerialPortLib+console and DebugLib to it.
-  //     //
-  //     *UartHobData = Ports.BaseAddress[0];
-  //   } else {
-  //     UINT64  ConsoleAddress;
-
-  //     Status = FdtSerialGetConsolePort (Base, &ConsoleAddress);
-  //     if (EFI_ERROR (Status)) {
-  //       //
-  //       // At least two UARTs; but failed to get the console preference. Use the
-  //       // first UART for SerialPortLib+console, and the second one for
-  //       // DebugLib.
-  //       //
-  //       *UartHobData = Ports.BaseAddress[0];
-  //     } else {
-  //       //
-  //       // At least two UARTs; and console preference available. Use the
-  //       // preferred UART for SerialPortLib+console, and *another* UART for
-  //       // DebugLib.
-  //       //
-  //       *UartHobData = ConsoleAddress;
-  //     }
-  //   }
-
-  // }
-
   BuildFvHob (PcdGet64 (PcdFvBaseAddress), PcdGet32 (PcdFvSize));
+
+  BuildReservedMemoryHob (NewBase);
 
   return EFI_SUCCESS;
 }
