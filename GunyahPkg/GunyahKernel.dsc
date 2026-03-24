@@ -41,6 +41,8 @@
   DEFINE NETWORK_ISCSI_ENABLE            = FALSE
   DEFINE NETWORK_PXE_BOOT_ENABLE         = TRUE
 
+  DEFINE PCI_CAM_MODE                    = TRUE
+
 # This comes at the beginning of includes to pick all relevant defines early on.
 !include ArmVirtPkg/ArmVirtStackCookies.dsc.inc
 
@@ -85,9 +87,13 @@
   QemuBootOrderLib|OvmfPkg/Library/QemuBootOrderLib/QemuBootOrderLib.inf
   PlatformBootManagerCommonLib|OvmfPkg/Library/PlatformBootManagerCommonLib/PlatformBootManagerCommonLib.inf
   FileExplorerLib|MdeModulePkg/Library/FileExplorerLib/FileExplorerLib.inf
-  PciPcdProducerLib|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
   PciSegmentLib|MdePkg/Library/BasePciSegmentLibPci/BasePciSegmentLibPci.inf
   PciHostBridgeLib|GunyahPkg/Library/FdtPciHostBridgeLib/FdtPciHostBridgeLib.inf
+!if $(PCI_CAM_MODE) == TRUE
+  PciPcdProducerLib|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!else
+  PciPcdProducerLib|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!endif
   PciHostBridgeUtilityLib|OvmfPkg/Library/PciHostBridgeUtilityLib/PciHostBridgeUtilityLib.inf
   TpmMeasurementLib|MdeModulePkg/Library/TpmMeasurementLibNull/TpmMeasurementLibNull.inf
   TpmPlatformHierarchyLib|SecurityPkg/Library/PeiDxeTpmPlatformHierarchyLibNull/PeiDxeTpmPlatformHierarchyLib.inf
@@ -456,15 +462,27 @@
   #
   UefiCpuPkg/CpuMmio2Dxe/CpuMmio2Dxe.inf {
     <LibraryClasses>
+!if $(PCI_CAM_MODE) == TRUE
       NULL|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!else
+      NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!endif
   }
   MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf {
     <LibraryClasses>
+!if $(PCI_CAM_MODE) == TRUE
       NULL|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!else
+      NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!endif
   }
   MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf {
     <LibraryClasses>
+!if $(PCI_CAM_MODE) == TRUE
       NULL|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!else
+      NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!endif
   }
   OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit.inf
   OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe.inf
@@ -496,7 +514,11 @@
   MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
   OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf {
     <LibraryClasses>
+!if $(PCI_CAM_MODE) == TRUE
       NULL|GunyahPkg/Library/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!else
+      NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+!endif
   }
   ArmVirtPkg/KvmtoolCfgMgrDxe/ConfigurationManagerDxe.inf
 

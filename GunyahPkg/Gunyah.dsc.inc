@@ -113,7 +113,11 @@
 
   # PCI Libraries (CAM: 256 bytes per function, not ECAM)
   PciLib|MdePkg/Library/BasePciLibPciExpress/BasePciLibPciExpress.inf
+!if $(PCI_CAM_MODE) == TRUE
   PciExpressLib|GunyahPkg/Library/BasePciCamLib/BasePciCamLib.inf
+!else
+  PciExpressLib|GunyahPkg/Library/BaseCachingPciExpressLib/BaseCachingPciExpressLib.inf
+!endif
   PciCapLib|OvmfPkg/Library/BasePciCapLib/BasePciCapLib.inf
   PciCapPciSegmentLib|OvmfPkg/Library/BasePciCapPciSegmentLib/BasePciCapPciSegmentLib.inf
   PciCapPciIoLib|OvmfPkg/Library/UefiPciCapPciIoLib/UefiPciCapPciIoLib.inf

@@ -59,9 +59,11 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   ArmVirt uses the PL011, crosvm uses NS16550A, `PatchedSerialPortLib16550` removed PCI supports.
 
-- PCIe generic CAM
+- ~~PCIe generic CAM~~
 
-  ArmVirt uses `pci-host-ecam-generic`, crosvm uses `pci-host-cam-generic`.
+  ~~ArmVirt uses `pci-host-ecam-generic`, crosvm uses `pci-host-cam-generic`.~~
+
+  Custom [crosvm](http://github.com/Droid-VM/crosvm) patch to support ECAM mode, your can use `-DPCI_CAM_MODE=FALSE` flag to build this firmware with PCIe ECAM mode
 
 - PL030 Real Time Clock
 

@@ -108,6 +108,7 @@ ProcessPciHost (
   UINT64               Mmio32Translation;
   UINT64               Mmio64Translation;
   UINT64               AddressLimit;
+  CONST CHAR8          *RootType;
 
   //
   // The following output arguments are initialized only in
@@ -142,35 +143,28 @@ ProcessPciHost (
                   );
   ASSERT_EFI_ERROR (Status);
 
+  RootType = "CAM";
   Status = FdtClient->FindCompatibleNode (
                         FdtClient,
                         "pci-host-cam-generic",
                         &Node
                         );
   if (EFI_ERROR (Status)) {
+    RootType = "ECAM";
+    Status = FdtClient->FindCompatibleNode (
+                          FdtClient,
+                          "pci-host-ecam-generic",
+                          &Node
+                          );
+  }
+  if (EFI_ERROR (Status)) {
     DEBUG ((
       DEBUG_INFO,
-      "%a: No 'pci-host-cam-generic' compatible DT node found\n",
+      "%a: No 'pci-host-cam-generic' or 'pci-host-ecam-generic' compatible DT node found\n",
       __func__
       ));
     return EFI_NOT_FOUND;
   }
-
-  DEBUG_CODE (
-    INT32 Tmp;
-
-    //
-    // A DT can legally describe multiple PCI host bridges, but we are not
-    // equipped to deal with that. So assert that there is only one.
-    //
-    Status = FdtClient->FindNextCompatibleNode (
-                          FdtClient,
-                          "pci-host-cam-generic",
-                          Node,
-                          &Tmp
-                          );
-    ASSERT (Status == EFI_NOT_FOUND);
-    );
 
   Status = FdtClient->GetNodeProperty (FdtClient, Node, "reg", &Prop, &Len);
   if (EFI_ERROR (Status) || (Len != 2 * sizeof (UINT64))) {
@@ -403,9 +397,10 @@ ProcessPciHost (
 
   DEBUG ((
     DEBUG_INFO,
-    "%a: Config[0x%Lx+0x%Lx) Bus[0x%x..0x%x] "
+    "%a: PCI %a Root Bridge Config[0x%Lx+0x%Lx) Bus[0x%x..0x%x] "
     "Io[0x%Lx+0x%Lx)@0x%Lx Mem32[0x%Lx+0x%Lx)@0x0 Mem64[0x%Lx+0x%Lx)@0x0\n",
     __func__,
+    RootType,
     ConfigBase,
     ConfigSize,
     *BusMin,

@@ -23,7 +23,10 @@ if [ -d .git ]; then
 	fi
 fi
 set +x
+SAVED_ARGS=("$@")
+set --
 source "${PWD}/edk2/edksetup.sh"
+set -- "${SAVED_ARGS[@]}"
 set -x
 mkdir -pv "${WORKSPACE}"
 make -C "${EDK_TOOLS_PATH}" -j"$(nproc)"
@@ -33,7 +36,8 @@ build \
 	-b "${EDK2_TARGET}" \
 	-D DISABLE_NEW_DEPRECATED_INTERFACES=TRUE \
 	-D FIRMWARE_VER="${VERSION}" \
-	-p GunyahPkg/GunyahKernel.dsc
+	-p GunyahPkg/GunyahKernel.dsc \
+	"$@"
 rm -fv edk2-gunyah.fd edk2-gunyah.vars.fd
 cp -v "${WORKSPACE}/Build/GunyahKernel-AARCH64/${EDK2_TARGET}_GCC/FV/GUNYAH_EFI.fd" edk2-gunyah.fd
 cp -v "${WORKSPACE}/Build/GunyahKernel-AARCH64/${EDK2_TARGET}_GCC/FV/GUNYAH_VARS.fd" edk2-gunyah.vars.fd
