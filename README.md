@@ -81,6 +81,12 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   crosvm's VirtioInput wants 2 queues.
 
+- VirtioScsi
+
+  crosvm's VirtioScsi need initialize all queues (controlq, eventq, requestq) before setting DRIVER_OK.
+
+  must limit LUNs to 1 (default to 8) to avoid crosvm returning duplicate disk handles for the same target.
+
 - SMBIOS
 
   ArmVirt get SMBIOS table from QEMU, crosvm doesn't have SMBIOS.

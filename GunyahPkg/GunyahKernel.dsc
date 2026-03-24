@@ -184,6 +184,11 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdResetOnMemoryTypeInformationChange|FALSE
   gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0x21, 0xaa, 0x2c, 0x46, 0x14, 0x76, 0x03, 0x45, 0x83, 0x6e, 0x8a, 0xb6, 0xf4, 0x66, 0x23, 0x31 }
 
+  # virtio-scsi: each target has exactly 1 LUN (LUN 0).
+  # Default PcdVirtioScsiMaxLunLimit=7 causes crosvm to return the same disk
+  # for LUN 0-7 on the same target, resulting in 8 duplicate disk handles.
+  gUefiOvmfPkgTokenSpaceGuid.PcdVirtioScsiMaxLunLimit|0
+
   # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
   gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0xdc, 0x5b, 0xc2, 0xee, 0xf2, 0x67, 0x95, 0x4d, 0xb1, 0xd5, 0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d }
 
@@ -394,7 +399,7 @@
   OvmfPkg/Fdt/HighMemDxe/HighMemDxe.inf
   GunyahPkg/Drivers/GunyahIoMmuDxe/GunyahIoMmuDxe.inf
   OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
-  OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
+  GunyahPkg/Drivers/GunyahVirtioScsiDxe/GunyahVirtioScsiDxe.inf
   OvmfPkg/VirtioNetDxe/VirtioNet.inf
   OvmfPkg/VirtioRngDxe/VirtioRng.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf

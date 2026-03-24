@@ -100,7 +100,7 @@ READ_LOCK_STATUS   = TRUE
   #
   INF OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
   INF OvmfPkg/VirtioNetDxe/VirtioNet.inf
-  INF OvmfPkg/VirtioScsiDxe/VirtioScsi.inf
+  INF GunyahPkg/Drivers/GunyahVirtioScsiDxe/GunyahVirtioScsiDxe.inf
   INF OvmfPkg/VirtioRngDxe/VirtioRng.inf
   INF OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
   INF GunyahPkg/Drivers/GunyahVirtioKeyboardDxe/GunyahVirtioKeyboard.inf
