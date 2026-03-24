@@ -91,6 +91,10 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   ArmVirt get SMBIOS table from QEMU, crosvm doesn't have SMBIOS.
 
+- PlatformBootManagerLibLight
+
+  Add missing VirtioInput supports.
+
 ## License
 
 See the repository `LICENSE` file at the project root for licensing details.
