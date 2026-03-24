@@ -168,7 +168,7 @@ READ_LOCK_STATUS   = TRUE
   # Video support
   #
   INF OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
-  #INF GunyahPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf
+  INF GunyahPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf
   INF GunyahPkg/Drivers/GunyahVirtioGpuDxe/GunyahVirtioGpu.inf
   INF OvmfPkg/PlatformDxe/Platform.inf
 
