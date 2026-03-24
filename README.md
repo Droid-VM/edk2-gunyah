@@ -95,6 +95,10 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   Add missing VirtioInput supports.
 
+- FdtHwInfoParserLib
+
+  Hack for disable PCIe IOMMU (unavailable)
+
 ## License
 
 See the repository `LICENSE` file at the project root for licensing details.

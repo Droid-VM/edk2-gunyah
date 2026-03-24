@@ -1,0 +1,53 @@
+diff --git a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Iort/RootComplexParser.c b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Iort/RootComplexParser.c
+index cc5e507d64..1808d01b9d 100644
+--- a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Iort/RootComplexParser.c
++++ b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Iort/RootComplexParser.c
+@@ -195,6 +195,7 @@ RootComplexNodeParser (
+ 
+   /// Memory access properties : Cache coherent attributes
+   /// Memory access properties : Memory access flags
++  DataSize = 0;
+   Data = FdtGetProp (Fdt, RootComplexNode, "dma-coherent", &DataSize);
+   if ((Data != NULL) && (DataSize >= 0)) {
+     RootComplexInfo->CacheCoherent     = EFI_ACPI_IORT_MEM_ACCESS_PROP_CCA;
+@@ -209,6 +210,7 @@ RootComplexNodeParser (
+   RootComplexInfo->AllocationHints = 0;
+ 
+   /// ATS attributes
++  DataSize = 0;
+   Data = FdtGetProp (Fdt, RootComplexNode, "ats-supported", &DataSize);
+   if ((Data != NULL) && (DataSize >= 0)) {
+     RootComplexInfo->AtsAttribute = EFI_ACPI_IORT_ROOT_COMPLEX_ATS_SUPPORTED;
+@@ -218,7 +220,7 @@ RootComplexNodeParser (
+ 
+   /// PCI segment number
+   Data = FdtGetProp (Fdt, RootComplexNode, "linux,pci-domain", &DataSize);
+-  if (Data != NULL) {
++  if (Data != NULL && DataSize >= sizeof (UINT32)) {
+     RootComplexInfo->PciSegmentNumber = *Data;
+   }
+ 
+@@ -238,8 +240,12 @@ RootComplexNodeParser (
+   /// Unique identifier for this node.
+   RootComplexInfo->Identifier = GetNextIortIdentifier ();
+ 
++  DataSize = 0;
+   Data = FdtGetProp (Fdt, RootComplexNode, "iommu-map", &DataSize);
+-  if ((Data == NULL) || ((DataSize % (IOMMU_MAP_CELL_COUNT * sizeof (UINT32))) != 0)) {
++  if (Data == NULL) {
++    return EFI_NOT_FOUND;
++  }
++  if (((DataSize % (IOMMU_MAP_CELL_COUNT * sizeof (UINT32))) != 0)) {
+     // If error or invalid number of cells (not multiple of IOMMU_MAP_CELL_COUNT).
+     ASSERT ((Data != NULL) && ((DataSize % (IOMMU_MAP_CELL_COUNT * sizeof (UINT32))) == 0));
+     return EFI_ABORTED;
+@@ -378,7 +384,8 @@ ArmPciRootComplexParser (
+ 
+     Status = RootComplexNodeParser (FdtParserHandle, Fdt, RootComplexNode, &RootComplexInfo);
+     if (EFI_ERROR (Status)) {
+-      ASSERT_EFI_ERROR (Status);
++      DEBUG ((DEBUG_WARN, "RootComplexNodeParser failed: %r\n", Status));
++      ASSERT (Status == EFI_NOT_FOUND);
+       return Status;
+     }
+ 
