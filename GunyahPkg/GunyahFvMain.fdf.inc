@@ -150,6 +150,7 @@ READ_LOCK_STATUS   = TRUE
   INF MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
   !include DynamicTablesPkg/DynamicTables.fdf.inc
   INF ArmVirtPkg/KvmtoolCfgMgrDxe/ConfigurationManagerDxe.inf
+  INF GunyahPkg/Drivers/GunyahRestrictedDmaPoolAcpiDxe/GunyahRestrictedDmaPoolAcpiDxe.inf
   INF MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
   INF OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
 !endif
