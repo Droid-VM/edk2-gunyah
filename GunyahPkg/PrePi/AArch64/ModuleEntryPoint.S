@@ -31,63 +31,22 @@ ASM_FUNC(_ModuleEntryPoint)
   // Keep a copy of the MpId register value
   mov   x20, x0
 
-// Check if we can install the stack at the top of the System Memory or if we need
-// to install the stacks at the bottom of the Firmware Device (case the FD is located
-// at the top of the DRAM)
+// Place the UEFI memory region (including stacks) right after the Firmware Device,
+// to avoid conflicting with reserved memory at the top of DRAM (swiotlb, simplefb, etc.)
 _SetupStackPosition:
-  // Compute Top of System Memory
-  ldr   x1, PcdGet64 (PcdSystemMemoryBase)
-  ldr   x2, PcdGet64 (PcdSystemMemorySize)
-  sub   x2, x2, #1
-  add   x1, x1, x2      // x1 = SystemMemoryTop = PcdSystemMemoryBase + PcdSystemMemorySize
-  mov   x4, #0x4000000    // Gunyah reserved last 64MiB
-  sub   x1, x1, x4
-
-  // Calculate Top of the Firmware Device
+  // Calculate end of Firmware Device
   ldr   x2, PcdGet64 (PcdFdBaseAddress)
-  MOV32 (w3, FixedPcdGet32 (PcdFdSize) - 1)
-  add   x3, x3, x2      // x3 = FdTop = PcdFdBaseAddress + PcdFdSize
+  MOV32 (w3, FixedPcdGet32 (PcdFdSize))
+  add   x21, x2, x3      // x21 = UefiMemoryBase = PcdFdBaseAddress + PcdFdSize
 
-  // UEFI Memory Size (stacks are allocated in this region)
+  // UEFI Memory Size (stacks are allocated at the top of this region)
   MOV32 (x4, FixedPcdGet32(PcdSystemMemoryUefiRegionSize))
 
-  //
-  // Reserve the memory for the UEFI region (contain stacks on its top)
-  //
-
-  // Calculate how much space there is between the top of the Firmware and the Top of the System Memory
-  subs  x0, x1, x3   // x0 = SystemMemoryTop - FdTop
-  b.mi  _SetupStack  // Jump if negative (FdTop > SystemMemoryTop). Case when the PrePi is in XIP memory outside of the DRAM
-  cmp   x0, x4
-  b.ge  _SetupStack
-
-  // Case the top of stacks is the FdBaseAddress
-  mov   x1, x2
-
-_SetupStack:
-  // x1 contains the top of the stack (and the UEFI Memory)
-
-  // Because the 'push' instruction is equivalent to 'stmdb' (decrement before), we need to increment
-  // one to the top of the stack. We check if incrementing one does not overflow (case of DRAM at the
-  // top of the memory space)
-  adds  x21, x1, #1
-  b.cs  _SetupOverflowStack
-
-_SetupAlignedStack:
-  mov   x1, x21
-  b     _GetBaseUefiMemory
-
-_SetupOverflowStack:
-  // Case memory at the top of the address space. Ensure the top of the stack is EFI_PAGE_SIZE
-  // aligned (4KB)
-  and   x1, x1, ~EFI_PAGE_MASK
-
-_GetBaseUefiMemory:
-  // Calculate the Base of the UEFI Memory
-  sub   x21, x1, x4
+  // Stack top = UefiMemoryBase + UefiRegionSize
+  add   x1, x21, x4
 
 _GetStackBase:
-  // r1 = The top of the Mpcore Stacks
+  // x1 = The top of the Mpcore Stacks
   mov   sp, x1
 
   // Stack for the primary core = PrimaryCoreStack
