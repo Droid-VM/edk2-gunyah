@@ -1,0 +1,40 @@
+## @file
+# Gunyah SSDT restricted DMA pool driver
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = GunyahRestrictedDmaPoolAcpiDxe
+  FILE_GUID      = 25C3528F-5614-4786-A1AD-0C0D0C8FC1C3
+  VERSION_STRING = 1.0
+  MODULE_TYPE    = DXE_DRIVER
+  ENTRY_POINT    = GunyahRestrictedDmaPoolAcpiDxeEntryPoint
+
+[Sources]
+  GunyahRestrictedDmaPoolAcpiDxe.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MdePkg/MdePkg.dec
+  DynamicTablesPkg/DynamicTablesPkg.dec
+
+[LibraryClasses]
+  AmlLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  TableHelperLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gFdtClientProtocolGuid
+  gEfiAcpiTableProtocolGuid
+
+[Depex]
+  gFdtClientProtocolGuid AND
+  gEfiAcpiTableProtocolGuid
