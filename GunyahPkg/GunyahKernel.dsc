@@ -398,6 +398,7 @@
   OvmfPkg/VirtioNetDxe/VirtioNet.inf
   OvmfPkg/VirtioRngDxe/VirtioRng.inf
   OvmfPkg/VirtioSerialDxe/VirtioSerial.inf
+  GunyahPkg/Drivers/GunyahVirtioKeyboardDxe/GunyahVirtioKeyboard.inf
 
   #
   # FAT filesystem + GPT/MBR partitioning + UDF filesystem + virtio-fs

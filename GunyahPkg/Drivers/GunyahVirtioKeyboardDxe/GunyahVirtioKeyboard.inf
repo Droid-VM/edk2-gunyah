@@ -1,0 +1,41 @@
+## @file
+# This driver produces EFI_SIMPLE_TEXT_INPUT_PROTOCOL for virt ARM devices.
+#
+# Copyright (C) 2024, Red Hat
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 1.29
+  BASE_NAME                      = GunyahVirtioKeyboardDxe
+  FILE_GUID                      = ED2CC440-D746-4707-9E7C-F7700C1CA430
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = VirtioKeyboardEntryPoint
+
+[Sources]
+  VirtioKeyboard.c
+  VirtioKeyboard.h
+  VirtioKeyCodes.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  OvmfPkg/OvmfPkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  VirtioLib
+
+# Protocols used by this driver
+[Protocols]
+  #gEfiDriverBindingProtocolGuid
+  gEfiSimpleTextInProtocolGuid
+  gEfiSimpleTextInputExProtocolGuid
+  gVirtioDeviceProtocolGuid

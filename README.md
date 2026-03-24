@@ -77,6 +77,10 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   crosvm's VirtioGpu wants 2 queues.
 
+- VirtioInput
+
+  crosvm's VirtioInput wants 2 queues.
+
 - SMBIOS
 
   ArmVirt get SMBIOS table from QEMU, crosvm doesn't have SMBIOS.
