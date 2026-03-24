@@ -1,5 +1,4 @@
 #!/bin/bash
-VERSION=0.1
 set -ex
 cd "$(dirname "$0")"
 git submodule update --init --recursive --depth 1
@@ -10,18 +9,8 @@ export WORKSPACE="${PWD}/build"
 if ! gcc -dumpmachine 2>/dev/null | grep -q '^aarch64-'; then
     export GCC_AARCH64_PREFIX=aarch64-linux-gnu-
 fi
-if [ -d .git ]; then
-	ver="$(git describe --long --tags 2>/dev/null | sed 's/^[vV]//;s/\([^-]*-g\)/r\1/;s/-/./g')"
-	if [ -z "$ver" ]; then
-		cnt="$(git rev-list --count HEAD 2>/dev/null||true)"
-		sha="$(git rev-parse --short HEAD 2>/dev/null||true)"
-		if [ -n "$cnt" ] && [ -n "$sha" ]; then
-			VERSION="${VERSION}.r${cnt}.${sha}"
-		fi
-	else
-		VERSION="$ver"
-	fi
-fi
+VERSION="$(bash -$- scripts/version.sh)"
+bash -$- scripts/patch.sh
 set +x
 SAVED_ARGS=("$@")
 set --
