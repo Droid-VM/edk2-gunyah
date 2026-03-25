@@ -88,7 +88,7 @@ READ_LOCK_STATUS   = TRUE
   INF FatPkg/EnhancedFatDxe/Fat.inf
   INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   INF MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
-  INF OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
+  INF GunyahPkg/Drivers/GunyahVirtioFsDxe/GunyahVirtioFsDxe.inf
 
   #
   # Status Code Routing

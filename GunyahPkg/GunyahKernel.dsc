@@ -413,7 +413,7 @@
   MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   FatPkg/EnhancedFatDxe/Fat.inf
   MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
-  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
+  GunyahPkg/Drivers/GunyahVirtioFsDxe/GunyahVirtioFsDxe.inf
 
   #
   # Bds

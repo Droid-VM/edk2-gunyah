@@ -87,6 +87,12 @@ This repo is based on ArmVirtPkg, with some patch for crosvm + gunyah.
 
   must limit LUNs to 1 (default to 8) to avoid crosvm returning duplicate disk handles for the same target.
 
+- VirtioFs
+
+  add missing highpri ring
+
+  fix fuse read MaxWrite handle
+
 - SMBIOS
 
   ArmVirt get SMBIOS table from QEMU, crosvm doesn't have SMBIOS.
