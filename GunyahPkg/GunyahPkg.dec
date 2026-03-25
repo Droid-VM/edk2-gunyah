@@ -32,10 +32,14 @@
   gGunyahTokenSpaceGuid           = {0x82572137, 0x9708, 0x9A8C, { 0x84, 0x85, 0x1E, 0x02, 0x2F, 0xF0, 0xE4, 0xB0}}
   gGunyahSystemMemorySizeGuid     = {0xB00D2A02, 0xB6C8, 0xA144, { 0xDD, 0xE3, 0xDE, 0x24, 0x1E, 0x8F, 0xDD, 0xC4}}
 
+
+[PcdsFixedAtBuild.common]
+  ## PL030 RealTimeClock
+  gGunyahTokenSpaceGuid.PcdPL030RtcPpmAccuracy|300000000|UINT32|0x00000001
+
 [PcdsDynamic.common]
   ## PL030 RealTimeClock
   gGunyahTokenSpaceGuid.PcdPL030RtcBase|0x0|UINT32|0x00000000
-  gGunyahTokenSpaceGuid.PcdPL030RtcPpmAccuracy|300000000|UINT32|0x00000001
 
   ## Simple Framebuffer
   gGunyahTokenSpaceGuid.PcdFrameBufferWidth|0|UINT32|0x10000000
