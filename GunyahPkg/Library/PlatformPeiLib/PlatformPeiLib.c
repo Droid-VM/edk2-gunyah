@@ -45,6 +45,7 @@ BuildReservedMemoryHob (
   INT32        SizeCells;
   INT32        PropLen;
   CONST UINT32 *RegProp;
+  BOOLEAN      NoMap;
 
   RsvdNode = FdtPathOffset (FdtBase, "/reserved-memory");
   if (RsvdNode < 0) {
@@ -71,15 +72,17 @@ BuildReservedMemoryHob (
     Base = ReadFdtCells (RegProp, AddrCells);
     Size = ReadFdtCells (RegProp + AddrCells, SizeCells);
 
+    NoMap = FdtGetProp (FdtBase, SubNode, "no-map", NULL) != NULL;
+  
     DEBUG ((
       DEBUG_INFO,
-      "%a: reserved region %a @ 0x%lx size 0x%lx\n",
+      "%a: reserved region %a @ 0x%lx size 0x%lx%a\n",
       __func__,
       FdtGetName(FdtBase, SubNode, NULL),
-      Base, Size
+      Base, Size, NoMap ? " (no-map)" : ""
       ));
 
-    BuildMemoryAllocationHob (Base, Size, EfiReservedMemoryType);
+    BuildMemoryAllocationHob (Base, Size, NoMap ? EfiReservedMemoryType : EfiACPIReclaimMemory);
   }
 }
 
