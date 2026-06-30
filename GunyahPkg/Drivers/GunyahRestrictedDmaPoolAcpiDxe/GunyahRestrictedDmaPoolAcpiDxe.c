@@ -150,7 +150,7 @@ InstallRestrictedDmaPoolSsdt (VOID)
              TRUE,                        // IsPosDecode
              TRUE,                        // IsMinFixed
              TRUE,                        // IsMaxFixed
-             AmlMemoryNonCacheable,       // Cacheable
+             AmlMemoryCacheable,          // Cacheable (match Linux restricted-dma-pool: Normal WB)
              TRUE,                        // IsReadWrite
              0,                           // AddressGranularity
              BaseAddress,                 // AddressMinimum
