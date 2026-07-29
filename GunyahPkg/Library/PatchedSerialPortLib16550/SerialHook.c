@@ -1,3 +1,11 @@
+/** @file
+  Serial port hook.
+
+  Copyright (c) DroidVM contributors. All rights reserved.
+
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+
+**/
 
 #include <Base.h>
 #include <Library/BaseLib.h>

@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+# Copyright DroidVM contributors
 VERSION=0.1
 cd "$(dirname "$(realpath "$0")")/.."
 if ! [ -d .git ]; then

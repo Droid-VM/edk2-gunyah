@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+# Copyright DroidVM contributors
 set -ex
 cd "$(dirname "$0")"
 git submodule update --init --recursive --depth 1
