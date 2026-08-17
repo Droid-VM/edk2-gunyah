@@ -1,6 +1,4 @@
 #!/bin/bash
-# SPDX-License-Identifier: BSD-2-Clause-Patent
-# Copyright DroidVM contributors
 set -e
 
 function patch_submodules() {

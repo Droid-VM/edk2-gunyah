@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: BSD-2-Clause-Patent
-# Copyright DroidVM contributors
 name: Build GunyahPkg
 
 on:
