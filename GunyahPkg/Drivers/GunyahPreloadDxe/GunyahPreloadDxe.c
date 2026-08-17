@@ -278,8 +278,11 @@ FindPreloadPool (
 
   Pool->Base = ReadBe64 (Property);
   Pool->Size = ReadBe64 (Property + sizeof (UINT64));
+  // Gunyah accepts a contiguous range in folio-sized units.  The crosvm
+  // pool validator guarantees the same 2 MiB granularity; requiring a
+  // power-of-two size here would reject valid sizes such as 2050 MiB.
   if ((Pool->Size < PRELOAD_MIN_SIZE) ||
-      ((Pool->Size & (Pool->Size - 1)) != 0) ||
+      ((Pool->Size & (PRELOAD_MIN_SIZE - 1)) != 0) ||
       ((Pool->Base & (PRELOAD_MIN_SIZE - 1)) != 0))
   {
     return EFI_COMPROMISED_DATA;
