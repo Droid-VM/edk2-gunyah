@@ -44,6 +44,7 @@ READ_LOCK_STATUS   = TRUE
   INF EmbeddedPkg/Drivers/FdtClientDxe/FdtClientDxe.inf
   INF OvmfPkg/Fdt/HighMemDxe/HighMemDxe.inf
   INF GunyahPkg/Drivers/GunyahIoMmuDxe/GunyahIoMmuDxe.inf
+  INF GunyahPkg/Drivers/GunyahPreloadDxe/GunyahPreloadDxe.inf
 
   #
   # PI DXE Drivers producing Architectural Protocols (EFI Services)

@@ -1,0 +1,39 @@
+## @file
+# Accept the dedicated edk2_preload Gunyah pool before Linux boots.
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = GunyahPreloadDxe
+  FILE_GUID                      = 7F25CB96-5A5B-4D5F-B00E-E38D921BCE9E
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = GunyahPreloadDxeEntryPoint
+
+[Sources]
+  GunyahPreloadDxe.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  OvmfPkg/OvmfPkg.dec
+
+[LibraryClasses]
+  ArmHvcLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  FdtLib
+  HobLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  VirtioLib
+
+[Protocols]
+  gVirtioDeviceProtocolGuid        ## TO_START
+
+[Guids]
+  gFdtHobGuid

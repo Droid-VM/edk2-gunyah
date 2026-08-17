@@ -239,6 +239,7 @@
 
 [PcdsDynamicDefault.common]
   gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut|1
+  gUefiOvmfPkgTokenSpaceGuid.PcdForceNoAcpi|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase     | 0
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareBase64   | 0
@@ -398,6 +399,7 @@
   EmbeddedPkg/Drivers/FdtClientDxe/FdtClientDxe.inf
   OvmfPkg/Fdt/HighMemDxe/HighMemDxe.inf
   GunyahPkg/Drivers/GunyahIoMmuDxe/GunyahIoMmuDxe.inf
+  GunyahPkg/Drivers/GunyahPreloadDxe/GunyahPreloadDxe.inf
   OvmfPkg/VirtioBlkDxe/VirtioBlk.inf
   GunyahPkg/Drivers/GunyahVirtioScsiDxe/GunyahVirtioScsiDxe.inf
   OvmfPkg/VirtioNetDxe/VirtioNet.inf
