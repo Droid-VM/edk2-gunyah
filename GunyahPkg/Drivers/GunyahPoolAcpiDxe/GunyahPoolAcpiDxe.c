@@ -261,6 +261,19 @@ ParsePoolNode (
   Pool->Base = SwapBytes64 (ReadUnaligned64 ((CONST UINT64 *)Prop));
   Pool->Size = SwapBytes64 (ReadUnaligned64 ((CONST UINT64 *)Prop + 1));
 
+  //
+  // `reg` covers the pre-shared floor, which for a growable pool is smaller than the window
+  // the guest may grow into: the Gunyah resource manager on android14-6.1 refuses to start a
+  // VM whose reserved-memory node describes a range no memparcel matches, and before boot only
+  // the floor is one. The window's size travels beside it, and is absent on a fully pre-shared
+  // pool because there the floor IS the window -- which is also every tree built before this.
+  //
+  if (!EFI_ERROR (GetPoolInteger (FdtClient, Node, "droidvm,pool-size", &Value)) &&
+      (Value >= Pool->Size))
+  {
+    Pool->Size = Value;
+  }
+
   if ((Pool->Base == 0) || (Pool->Size == 0) ||
       (Pool->Base > MAX_UINT64 - Pool->Size))
   {
