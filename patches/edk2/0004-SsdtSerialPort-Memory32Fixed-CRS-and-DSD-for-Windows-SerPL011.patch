@@ -1,0 +1,212 @@
+diff --git a/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortFixupLib.c b/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortFixupLib.c
+index fd4d4a7d..115ae041 100644
+--- a/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortFixupLib.c
++++ b/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortFixupLib.c
+@@ -296,7 +296,8 @@ FixupCrs (
+ {
+   EFI_STATUS              Status;
+   AML_OBJECT_NODE_HANDLE  NameOpCrsNode;
+-  AML_DATA_NODE_HANDLE    QWordRdNode;
++  AML_DATA_NODE_HANDLE    PlaceholderRdNode;
++  UINT32                  MemLength;
+ 
+   // Get the "_CRS" object defined by the "Name ()" statement.
+   Status = AmlFindNode (
+@@ -308,22 +309,36 @@ FixupCrs (
+     return Status;
+   }
+ 
+-  // Get the first Rd node in the "_CRS" object.
+-  Status = AmlNameOpGetFirstRdNode (NameOpCrsNode, &QWordRdNode);
++  // Delete the QWordMemory placeholder from the template (leaving the EndTag),
++  // then re-emit the register block as a 32-bit fixed memory descriptor. Windows'
++  // SerCx2/SerPL011 refuses the QWordMemory form (STATUS_ACPI_INVALID_DATA at
++  // start); real PL011 ACPI uses Memory32Fixed. The UART lives in the low MMIO
++  // window so 32 bits is always sufficient here.
++  Status = AmlNameOpGetFirstRdNode (NameOpCrsNode, &PlaceholderRdNode);
+   if (EFI_ERROR (Status)) {
+     return Status;
+   }
+ 
+-  if (QWordRdNode == NULL) {
+-    return EFI_INVALID_PARAMETER;
++  if (PlaceholderRdNode != NULL) {
++    Status = AmlDetachNode ((AML_NODE_HANDLE)PlaceholderRdNode);
++    if (EFI_ERROR (Status)) {
++      return Status;
++    }
++
++    Status = AmlDeleteTree ((AML_NODE_HANDLE)PlaceholderRdNode);
++    if (EFI_ERROR (Status)) {
++      return Status;
++    }
+   }
+ 
+-  // Update the Serial Port base address and length.
+-  Status = AmlUpdateRdQWord (
+-             QWordRdNode,
+-             SerialPortInfo->BaseAddress,
+-             ((SerialPortInfo->BaseAddressLength < MIN_UART_ADDRESS_LENGTH) ?
+-              MIN_UART_ADDRESS_LENGTH : SerialPortInfo->BaseAddressLength)
++  MemLength = (UINT32)((SerialPortInfo->BaseAddressLength < MIN_UART_ADDRESS_LENGTH) ?
++                       MIN_UART_ADDRESS_LENGTH : SerialPortInfo->BaseAddressLength);
++  Status = AmlCodeGenRdMemory32Fixed (
++             TRUE,                                   // ReadWrite
++             (UINT32)SerialPortInfo->BaseAddress,
++             MemLength,
++             NameOpCrsNode,
++             NULL
+              );
+   if (EFI_ERROR (Status)) {
+     return Status;
+@@ -547,6 +562,24 @@ BuildSsdtSerialPortTable (
+       " Status = %r\n",
+       Status
+       ));
++  } else {
++    // Diagnostic hexdump of the generated AML so it can be captured off the
++    // serial console and disassembled (iasl -d) on the host.
++    UINT8   *TblBytes;
++    UINT32  TblLen;
++    UINT32  HexIdx;
++
++    TblBytes = (UINT8 *)*Table;
++    TblLen   = ((EFI_ACPI_DESCRIPTION_HEADER *)*Table)->Length;
++    DEBUG ((DEBUG_ERROR, "SSDT-AML-DUMP name=%a uid=%lu len=%u\n",
++            Name, Uid, TblLen));
++    for (HexIdx = 0; HexIdx < TblLen; HexIdx++) {
++      if ((HexIdx & 15) == 0) {
++        DEBUG ((DEBUG_ERROR, "\nSSDT-AML:"));
++      }
++      DEBUG ((DEBUG_ERROR, " %02x", TblBytes[HexIdx]));
++    }
++    DEBUG ((DEBUG_ERROR, "\nSSDT-AML-END\n"));
+   }
+ 
+ exit_handler:
+diff --git a/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortTemplate.asl b/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortTemplate.asl
+index ef0ab9a9..5509d3c2 100644
+--- a/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortTemplate.asl
++++ b/DynamicTablesPkg/Library/Common/SsdtSerialPortFixupLib/SsdtSerialPortTemplate.asl
+@@ -25,40 +25,33 @@ DefinitionBlock ("SsdtSerialPortTemplate.aml", "SSDT", 2, "ARMLTD", "SERIAL", 1)
+         Return(0xF)
+       }
+ 
++      // Device-properties _DSD. Real PL011 platforms (e.g. Raspberry Pi UEFI)
++      // carry one; Windows' SerCx2/SerPL011 queries the ACPI device properties
++      // at start, and a device with no _DSD fails that query
++      // (STATUS_ACPI_INVALID_DATA) and never starts.
++      Name (_DSD, Package () {
++        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301"),
++        Package () {
++          Package (2) { "SerCx-FriendlyName", "UART0" }
++        }
++      })
++
++      // This QWordMemory is a placeholder only, present so the ResourceTemplate
++      // buffer is well-formed (it must carry an EndTag for AmlLib). FixupCrs()
++      // deletes it and re-emits the register block as a Memory32Fixed descriptor:
++      // Windows' SerCx2/SerPL011 rejects the QWordMemory form (it reaches the
++      // driver with an extra CmResourceTypeMemoryLarge companion, failing start
++      // with STATUS_ACPI_INVALID_DATA), whereas real PL011 ACPI (RPi, QEMU virt)
++      // uses Memory32Fixed. The Interrupt is likewise generated via AmlCodegen.
+       Name (_CRS, ResourceTemplate() {
+         QWordMemory (
+-          ,                   // ResourceUsage
+-          ,                   // Decode
+-          ,                   // IsMinFixed
+-          ,                   // IsMaxFixed
+-          ,                   // Cacheable
+-          ReadWrite,          // ReadAndWrite
++          , , , , , ReadWrite,
+           0x0,                // AddressGranularity
+-          0xA0000000,         // AddressMinimum           // {template}
+-          0xAFFFFFFF,         // AddressMaximum           // {template}
++          0xA0000000,         // AddressMinimum
++          0xAFFFFFFF,         // AddressMaximum
+           0,                  // AddressTranslation
+-          0x10000000,         // RangeLength              // {template}
+-          ,                   // ResourceSourceIndex
+-          ,                   // ResourceSource
+-          ,                   // DescriptorName
+-          ,                   // MemoryRangeType
+-                              // TranslationType
+-        ) // QWordMemory
+-
+-        // The Interrupt information is generated using AmlCodegen.
+-        //
+-        // Interrupt (                                    // {codegen}
+-        //  ResourceConsumer, // ResourceUsage
+-        //  Level,            // EdgeLevel
+-        //  ActiveHigh,       // ActiveLevel
+-        //  Exclusive,        // Shared
+-        //  ,                 // ResourceSourceIndex
+-        //  ,                 // ResourceSource
+-        //                    // DescriptorName
+-        //  ) {
+-        //    <IRQ>           // <spi>
+-        // } // Interrupt
+-
++          0x10000000          // RangeLength
++        )
+       }) // Name
+     } // Device
+   } // Scope (_SB)
+diff --git a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Serial/SerialPortParser.c b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Serial/SerialPortParser.c
+index 6a26effd..ebd45766 100644
+--- a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Serial/SerialPortParser.c
++++ b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Serial/SerialPortParser.c
+@@ -52,15 +52,32 @@ CONST COMPATIBILITY_INFO  Serial16550CompatibleInfo = {
+   Serial16550CompatibleStr
+ };
+ 
+-/** SBSA UART compatible strings.
++/** PL011 UART compatible strings.
++
++  Kept separate from the SBSA list (upstream folds PL011 into SBSA): a full PL011
++  must be advertised with the PL011 DBG2 subtype so the SSDT serial device gets
++  _HID ARMH0011 -- the only ID Windows' inbox serpl011.inf matches. The SBSA
++  subtype yields _HID ARMHB000, which no inbox Windows driver binds.
++
++  Any string of this list must be part of SerialCompatible.
++*/
++STATIC CONST COMPATIBILITY_STR  SerialPl011CompatibleStr[] = {
++  { "arm,pl011" }
++};
++
++/** COMPATIBILITY_INFO structure for the SerialPl011Compatible.
++*/
++CONST COMPATIBILITY_INFO  SerialPl011CompatibleInfo = {
++  ARRAY_SIZE (SerialPl011CompatibleStr),
++  SerialPl011CompatibleStr
++};
+ 
+-  Include PL011 as SBSA uart is a subset of PL011.
++/** SBSA UART compatible strings.
+ 
+   Any string of this list must be part of SerialCompatible.
+ */
+ STATIC CONST COMPATIBILITY_STR  SerialSbsaCompatibleStr[] = {
+-  { "arm,sbsa-uart" },
+-  { "arm,pl011"     }
++  { "arm,sbsa-uart" }
+ };
+ 
+ /** COMPATIBILITY_INFO structure for the SerialSbsaCompatible.
+@@ -237,6 +254,16 @@ SerialPortNodeParser (
+       // 8250/16550 defaults to byte access.
+       SerialPortInfo->AccessSize = EFI_ACPI_6_3_BYTE;
+     }
++  } else if (FdtNodeIsCompatible (
++               Fdt,
++               SerialPortNode,
++               &SerialPl011CompatibleInfo
++               ))
++  {
++    // Checked before SBSA: a node carrying both "arm,pl011" and "arm,sbsa-uart"
++    // is a full PL011 and must get the PL011 subtype (see SerialPl011CompatibleStr).
++    SerialPortInfo->PortSubtype =
++      EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_ARM_PL011_UART;
+   } else if (FdtNodeIsCompatible (
+                Fdt,
+                SerialPortNode,
