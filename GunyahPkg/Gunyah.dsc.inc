@@ -365,3 +365,4 @@
       NULL|EmbeddedPkg/Library/PlatformHasAcpiLib/PlatformHasAcpiLib.inf
   }
   GunyahPkg/Drivers/GunyahRestrictedDmaPoolAcpiDxe/GunyahRestrictedDmaPoolAcpiDxe.inf
+  GunyahPkg/Drivers/GunyahPoolAcpiDxe/GunyahPoolAcpiDxe.inf
