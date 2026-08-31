@@ -1,0 +1,41 @@
+## @file
+# DroidVM memory pool SSDT generator
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = GunyahPoolAcpiDxe
+  FILE_GUID      = 200DCA32-6260-47D3-9023-47074B7FBD5F
+  VERSION_STRING = 1.0
+  MODULE_TYPE    = DXE_DRIVER
+  ENTRY_POINT    = GunyahPoolAcpiDxeEntryPoint
+
+[Sources]
+  GunyahPoolAcpiDxe.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MdePkg/MdePkg.dec
+  DynamicTablesPkg/DynamicTablesPkg.dec
+
+[LibraryClasses]
+  AmlLib
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  PrintLib
+  UefiBootServicesTableLib
+  TableHelperLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gFdtClientProtocolGuid
+  gEfiAcpiTableProtocolGuid
+
+[Depex]
+  gFdtClientProtocolGuid AND
+  gEfiAcpiTableProtocolGuid

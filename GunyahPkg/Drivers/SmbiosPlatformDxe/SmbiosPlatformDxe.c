@@ -267,8 +267,13 @@ SMBIOS_TABLE_TYPE4 mProcessorInfoType4 = {
     0,                    // ThreadCount2;
 };
 
+// ProcessorVersion is what Windows Task Manager shows as the CPU name. Default stays
+// "Gunyah vCPU"; the VMM can override it at runtime through the FDT /chosen property
+// "droidvm,smbios-processor-version" (crosvm --smbios processor-version=...).
+CHAR8 mProcessorVersion[128] = "Gunyah vCPU";
+
 CHAR8 *mProcessorInfoType4Strings[] = {
-    "BUILTIN", "Qualcomm", "Gunyah vCPU",NULL
+    "BUILTIN", "Qualcomm", mProcessorVersion, NULL
 };
 
 /***********************************************************************
@@ -706,6 +711,49 @@ LogMemoryInfo(
       NULL);
 }
 
+/**
+  Override one of the static SMBIOS string buffers with a string property from the
+  FDT /chosen node, when the VMM provided one. The property is expected to be a
+  NUL-terminated devicetree string; the buffer keeps its built-in default otherwise.
+**/
+STATIC
+VOID
+OverrideFromChosenNode (
+  IN FDT_CLIENT_PROTOCOL *FdtClient,
+  IN CONST CHAR8         *PropertyName,
+  OUT CHAR8              *Buffer,
+  IN UINTN               BufferSize
+  )
+{
+  EFI_STATUS  Status;
+  INT32       Node;
+  CONST VOID  *Prop;
+  UINT32      PropSize;
+  UINTN       Len;
+
+  Status = FdtClient->GetOrInsertChosenNode (FdtClient, &Node);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  Status = FdtClient->GetNodeProperty (FdtClient, Node, PropertyName, &Prop, &PropSize);
+  if (EFI_ERROR (Status) || (PropSize == 0)) {
+    return;
+  }
+
+  Len = AsciiStrnLenS ((CONST CHAR8 *)Prop, PropSize);
+  if (Len == 0) {
+    return;
+  }
+  if (Len >= BufferSize) {
+    Len = BufferSize - 1;
+  }
+
+  CopyMem (Buffer, Prop, Len);
+  Buffer[Len] = '\0';
+  DEBUG ((DEBUG_INFO, "%a: %a = \"%a\"\n", __func__, PropertyName, Buffer));
+}
+
 EFI_STATUS
 EFIAPI
 SmbiosPlatformDriverEntryPoint(
@@ -723,6 +771,17 @@ SmbiosPlatformDriverEntryPoint(
                   (VOID **)&FdtClient
                   );
   ASSERT_EFI_ERROR (Status);
+
+  // Runtime SMBIOS identity overrides passed by the VMM via FDT /chosen (see crosvm --smbios).
+  OverrideFromChosenNode (
+      FdtClient, "droidvm,smbios-processor-version",
+      mProcessorVersion, sizeof (mProcessorVersion));
+  OverrideFromChosenNode (
+      FdtClient, "droidvm,smbios-product-name",
+      mSysInfoProductName, sizeof (mSysInfoProductName));
+  OverrideFromChosenNode (
+      FdtClient, "droidvm,smbios-manufacturer",
+      mSysInfoManufName, sizeof (mSysInfoManufName));
 
   // TYPE0 BIOS Information
   AsciiSPrint(

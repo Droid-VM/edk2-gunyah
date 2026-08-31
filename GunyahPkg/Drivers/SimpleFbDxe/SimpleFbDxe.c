@@ -165,6 +165,24 @@ DisplayBlt(
   return RETURN_ERROR(Status) ? EFI_INVALID_PARAMETER : EFI_SUCCESS;
 }
 
+/**
+  Map the framebuffer, and give it the attributes a framebuffer wants.
+
+  This is not only about attributes. Where the framebuffer sits outside the
+  memory the firmware was told is RAM -- a Gunyah pseudo-unprotected VM, whose
+  /memory names only the window the shim accepted, and whose framebuffer is the
+  region just above it -- this call is what creates the mapping at all. Nothing
+  else does: the driver takes the address from a device-tree node and writes to
+  it directly.
+
+  Which is why the range has to be a whole number of pages. The page tables are
+  updated a page at a time and a request that is not page-aligned is refused
+  outright, so a framebuffer whose byte size is not a multiple of 4 KiB --
+  1400x1050x32 is 0x59B940 -- would leave the mapping uncreated. In a VM where
+  the framebuffer happened to fall inside RAM that went unnoticed, because the
+  mapping was already there; where it does not, the first write to the
+  framebuffer took a synchronous data abort and the firmware died on the spot.
+**/
 STATIC
 EFI_STATUS
 SetSimpleFrameBufferMemoryAttributes(
@@ -172,6 +190,8 @@ SetSimpleFrameBufferMemoryAttributes(
     IN UINTN FrameBufferSize)
 {
   EFI_CPU_ARCH_PROTOCOL *CpuArch = NULL;
+  EFI_PHYSICAL_ADDRESS  AlignedBase;
+  UINT64                AlignedSize;
   EFI_STATUS            Status;
 
   Status = gBS->LocateProtocol(&gEfiCpuArchProtocolGuid, NULL, (VOID **)&CpuArch);
@@ -180,10 +200,14 @@ SetSimpleFrameBufferMemoryAttributes(
     return Status;
   }
 
+  AlignedBase = FrameBufferBase & ~((EFI_PHYSICAL_ADDRESS)EFI_PAGE_SIZE - 1);
+  AlignedSize = ALIGN_VALUE(FrameBufferBase + FrameBufferSize, EFI_PAGE_SIZE) -
+                AlignedBase;
+
   Status = CpuArch->SetMemoryAttributes(
       CpuArch,
-      FrameBufferBase,
-      FrameBufferSize,
+      AlignedBase,
+      AlignedSize,
       EFI_MEMORY_WT | EFI_MEMORY_XP);
 
   if (EFI_ERROR(Status)) {
@@ -268,9 +292,21 @@ SimpleFbDxeInitialize(
   DEBUG((EFI_D_WARN, "0"));
 
   /* Memory propery configuration */
-  SetSimpleFrameBufferMemoryAttributes(
+  Status = SetSimpleFrameBufferMemoryAttributes(
       (EFI_PHYSICAL_ADDRESS)FrameBufferAddress,
       FrameBufferSize);
+  if (EFI_ERROR(Status)) {
+    /*
+     * Without that mapping there is nowhere to draw. Everything below this
+     * point writes to the framebuffer -- ZeroMem first -- so carrying on would
+     * not produce a display, it would produce a data abort in a phase where the
+     * only thing that reports one is the exception handler.
+     */
+    DEBUG((EFI_D_ERROR,
+           "SimpleFbDxe: framebuffer at 0x%lx is not mapped; no GOP\n",
+           (UINT64)FrameBufferAddress));
+    return Status;
+  }
 
   DEBUG((EFI_D_WARN, "1"));
 

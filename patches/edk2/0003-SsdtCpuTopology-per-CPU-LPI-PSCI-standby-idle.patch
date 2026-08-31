@@ -1,0 +1,69 @@
+diff --git a/DynamicTablesPkg/Library/Acpi/Common/AcpiSsdtCpuTopologyLib/SsdtCpuTopologyGenerator.c b/DynamicTablesPkg/Library/Acpi/Common/AcpiSsdtCpuTopologyLib/SsdtCpuTopologyGenerator.c
+index 311010b9..a9e85e20 100644
+--- a/DynamicTablesPkg/Library/Acpi/Common/AcpiSsdtCpuTopologyLib/SsdtCpuTopologyGenerator.c
++++ b/DynamicTablesPkg/Library/Acpi/Common/AcpiSsdtCpuTopologyLib/SsdtCpuTopologyGenerator.c
+@@ -650,6 +650,21 @@ CreateAmlCpu (
+   EFI_STATUS              Status;
+   AML_OBJECT_NODE_HANDLE  CpuNode;
+   CHAR8                   AslName[AML_NAME_SEG_SIZE + 1];
++  AML_OBJECT_NODE_HANDLE  LpiNode;
++  //
++  // DroidVM/Gunyah: a single PSCI CPU_SUSPEND "standby" idle state to advertise
++  // to the guest OS via a per-CPU _LPI (see below). Functional Fixed Hardware
++  // (FFH) entry method => the OS calls PSCI CPU_SUSPEND with Address as the
++  // power_state. 0x04000000 is this SoC's core idle param (StateType=standby,
++  // no arch context loss).
++  //
++  EFI_ACPI_6_3_GENERIC_ADDRESS_STRUCTURE  PsciLpiEntry = {
++    EFI_ACPI_6_3_FUNCTIONAL_FIXED_HARDWARE, // AddressSpaceId (FFH => PSCI)
++    0x20,                                   // RegisterBitWidth (32)
++    0x00,                                   // RegisterBitOffset
++    0x03,                                   // AccessSize (DWORD)
++    0x04000000                              // Address = PSCI power_state (standby)
++  };
+ 
+   ASSERT (Generator != NULL);
+   ASSERT (ParentNode != NULL);
+@@ -688,6 +703,42 @@ CreateAmlCpu (
+     return Status;
+   }
+ 
++  //
++  // DroidVM/Gunyah fix: this platform builds a FLAT CPU topology (no PPTT/proc
++  // hierarchy), so the generic _LPI path (CreateAmlLpiMethod, driven by a
++  // ProcHierarchy LpiToken) never runs. Without any _LPI, Windows ARM64 never
++  // enters a low-power idle: its idle loop busy-spins instead of issuing PSCI
++  // CPU_SUSPEND, pinning every host pCPU at ~100% even when the guest is idle.
++  // (Linux is unaffected because it always has a built-in WFI idle state.)
++  // Emit a minimal per-CPU _LPI with one PSCI CPU_SUSPEND standby state so the
++  // guest actually idles; Gunyah blocks the vCPU on CPU_SUSPEND and frees the
++  // host core.
++  //
++  Status = AmlCreateLpiNode ("_LPI", 0, 0, CpuNode, &LpiNode);
++  if (EFI_ERROR (Status)) {
++    ASSERT (0);
++    return Status;
++  }
++
++  Status = AmlAddLpiState (
++             1,             // MinResidency (us)
++             1,             // WorstCaseWakeLatency (us)
++             1,             // Flags: bit0 = state enabled
++             0,             // ArchFlags: no arch context lost (standby)
++             0,             // ResCntFreq
++             0,             // EnableParentState
++             &PsciLpiEntry, // Entry method: FFH register => PSCI CPU_SUSPEND
++             0,             // Integer entry method (unused)
++             NULL,          // ResidencyCounterRegister
++             NULL,          // UsageCounterRegister
++             "WFI",         // StateName
++             LpiNode
++             );
++  if (EFI_ERROR (Status)) {
++    ASSERT (0);
++    return Status;
++  }
++
+   // If requested, return the handle to the CpuNode.
+   if (CpuNodePtr != NULL) {
+     *CpuNodePtr = CpuNode;

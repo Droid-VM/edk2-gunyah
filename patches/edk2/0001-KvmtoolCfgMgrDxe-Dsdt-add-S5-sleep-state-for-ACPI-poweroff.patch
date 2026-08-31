@@ -1,0 +1,21 @@
+diff --git a/ArmVirtPkg/KvmtoolCfgMgrDxe/AslTables/Dsdt.asl b/ArmVirtPkg/KvmtoolCfgMgrDxe/AslTables/Dsdt.asl
+index 13d1e1d8..dd8d9eb9 100644
+--- a/ArmVirtPkg/KvmtoolCfgMgrDxe/AslTables/Dsdt.asl
++++ b/ArmVirtPkg/KvmtoolCfgMgrDxe/AslTables/Dsdt.asl
+@@ -18,4 +18,16 @@ DefinitionBlock ("DsdtTable.aml", "DSDT", 2, "ARMLTD", "ARM-KVMT", 1) {
+     // Therefore, add an empty stub for DSDT.
+     //
+   } // Scope (_SB)
++
++  //
++  // System sleep state S5 (soft off). Required by an ACPI-only guest
++  // (Windows-on-ARM) so it knows the SLP_TYP value to write to the FADT
++  // SLEEP_CONTROL_REG when powering off. SLP_TYPa = 0 matches the crosvm
++  // PmReset device, which powers the VM off (VmEventType::Exit) on an S5
++  // (SLP_TYP == 0) write to SLEEP_CONTROL_REG.
++  //
++  Name (\_S5, Package (0x02) {
++    0x00, // PM1a_CNT.SLP_TYP
++    0x00, // PM1b_CNT.SLP_TYP
++  })
+ }
