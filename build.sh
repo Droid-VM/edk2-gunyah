@@ -18,7 +18,16 @@ source "${PWD}/edk2/edksetup.sh"
 set -- "${SAVED_ARGS[@]}"
 set -x
 mkdir -pv "${WORKSPACE}"
-make -C "${EDK_TOOLS_PATH}" -j"$(nproc)"
+# Serial on purpose. BaseTools' VfrCompile makefile declares EfiVfrParser.cpp,
+# VfrSyntax.cpp, VfrParser.dlg and VfrTokens.h as four independent targets, but all four
+# are produced by one antlr run -- so a parallel make starts an antlr per target and they
+# overwrite each other's output. What comes out is a source file truncated mid-literal,
+# and the compiler reports it as a C++ syntax error ("unable to find numeric literal
+# operator") in generated code nobody wrote, which is about as far from the cause as an
+# error message gets. It is also flaky: the last antlr to finish leaves a correct file, so
+# rebuilding often "fixes" it. BaseTools is small; the whole of it serial costs less than
+# one wrong diagnosis of this.
+make -C "${EDK_TOOLS_PATH}" -j1
 build \
 	-t GCC \
 	-a AARCH64 \
