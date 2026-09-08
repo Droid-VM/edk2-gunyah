@@ -37,6 +37,7 @@
   gGunyahTokenSpaceGuid.PcdFrameBufferWidth
   gGunyahTokenSpaceGuid.PcdFrameBufferHeight
   gGunyahTokenSpaceGuid.PcdFrameBufferBaseAddress
+  gGunyahTokenSpaceGuid.PcdFrameBufferStride
 
 [Depex]
   gFdtClientProtocolGuid

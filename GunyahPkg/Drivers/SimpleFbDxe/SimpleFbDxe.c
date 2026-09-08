@@ -237,6 +237,7 @@ SimpleFbDxeInitialize(
   UINT64 MipiFrameBufferAddr = PcdGet64(PcdFrameBufferBaseAddress);
   UINT32 MipiFrameBufferWidth  = PcdGet32(PcdFrameBufferWidth);
   UINT32 MipiFrameBufferHeight = PcdGet32(PcdFrameBufferHeight);
+  UINT32 MipiFrameBufferStride = PcdGet32(PcdFrameBufferStride);
 
   /* Sanity check */
   if (MipiFrameBufferAddr == 0 || MipiFrameBufferWidth == 0 ||
@@ -279,11 +280,42 @@ SimpleFbDxeInitialize(
   mDisplay.Mode->Info->VerticalResolution   = MipiFrameBufferHeight;
 
   /* SimpleFB runs on a8r8g8b8 (VIDEO_BPP32) for WoA devices */
-  UINT32               LineLength = MipiFrameBufferWidth * VNBYTES(VIDEO_BPP32);
+
+  /* The row pitch comes from the device tree, not from the width: the host pads its rows so that
+     the same memory can be imported as a LINEAR dmabuf by the GPU display path, whose importer
+     cannot express every pitch. A width that does not land on that alignment therefore has
+     padding after each visible row, and computing LineLength as width * 4 would walk one row
+     short of the truth -- shearing the picture progressively down the screen.
+
+     A zero (no 'stride' in the DT) or a nonsense value means packed, which is what this driver
+     assumed before the property existed. PixelsPerScanLine is the field GOP has for exactly this
+     and is what Windows' Basic Display driver reads, so a padded framebuffer needs nothing
+     further downstream. */
+  /* FB_BYTES_PER_PIXEL, not VNBYTES: the macro above deliberately omits its outer brackets so
+     that `x * VNBYTES(bpp)` stays exact for sub-byte depths, which makes it correct in a
+     multiplication and wrong in every divisor. `a / VNBYTES(VIDEO_BPP32)` expands to
+     `a / (1 << 5) / 8`, i.e. a / 256 -- and `a % VNBYTES(...)` to `(a % 32) / 8`, which calls a
+     perfectly aligned 6000-byte stride misaligned. Both were measured: PixelsPerScanLine came out
+     20 instead of 1280, so the whole screen was written into the first eleven rows. */
+  UINT32               PackedLineLength = MipiFrameBufferWidth * FB_BYTES_PER_PIXEL;
+  UINT32               LineLength       = MipiFrameBufferStride;
+
+  if (LineLength < PackedLineLength || (LineLength % FB_BYTES_PER_PIXEL) != 0) {
+    if (LineLength != 0) {
+      DEBUG((EFI_D_WARN, "SimpleFbDxe: unusable stride %u, using packed %u\n", LineLength,
+             PackedLineLength));
+    }
+    LineLength = PackedLineLength;
+  }
+
   UINT32               FrameBufferSize    = LineLength * MipiFrameBufferHeight;
   EFI_PHYSICAL_ADDRESS FrameBufferAddress = MipiFrameBufferAddr;
 
-  mDisplay.Mode->Info->PixelsPerScanLine = MipiFrameBufferWidth;
+  DEBUG((EFI_D_INFO, "SimpleFbDxe: %ux%u stride=%u (%u px per scan line)\n",
+         MipiFrameBufferWidth, MipiFrameBufferHeight, LineLength,
+         LineLength / FB_BYTES_PER_PIXEL));
+
+  mDisplay.Mode->Info->PixelsPerScanLine = LineLength / FB_BYTES_PER_PIXEL;
   mDisplay.Mode->Info->PixelFormat = PixelBlueGreenRedReserved8BitPerColor;
   mDisplay.Mode->SizeOfInfo      = sizeof(EFI_GRAPHICS_OUTPUT_MODE_INFORMATION);
   mDisplay.Mode->FrameBufferBase = FrameBufferAddress;
