@@ -45,3 +45,7 @@
   gGunyahTokenSpaceGuid.PcdFrameBufferWidth|0|UINT32|0x10000000
   gGunyahTokenSpaceGuid.PcdFrameBufferHeight|0|UINT32|0x10000001
   gGunyahTokenSpaceGuid.PcdFrameBufferBaseAddress|0|UINT64|0x10000002
+  ## Row pitch in bytes, from the device tree's 'stride'. Zero means the node did not carry
+  ## one, and the layout is then packed (width * 4) -- which is what every simple-framebuffer
+  ## node written before host-side row padding described, so zero must keep meaning that.
+  gGunyahTokenSpaceGuid.PcdFrameBufferStride|0|UINT32|0x10000003
