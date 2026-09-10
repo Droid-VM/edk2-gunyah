@@ -16,6 +16,10 @@
 
 #include <Protocol/FdtClient.h>
 
+/* SimpleFB runs on a8r8g8b8 for WoA devices, the same fact SimpleFbDxe states as VIDEO_BPP32.
+   Named here so the stride arithmetic below does not spell out a 4 nobody can search for. */
+#define SIMPLEFB_BYTES_PER_PIXEL  4
+
 RETURN_STATUS
 ReadPropertyInFdt(
   IN FDT_CLIENT_PROTOCOL *FdtClient,
@@ -86,6 +90,7 @@ SimpleFbFdtClientLibConstructor (
   UINT64               FramebufferBaseAddress;
   UINT32               FramebufferHeight;
   UINT32               FramebufferWidth;
+  UINT32               FramebufferStride;
   RETURN_STATUS        PcdStatus;
 
   Status = gBS->LocateProtocol (
@@ -148,6 +153,47 @@ SimpleFbFdtClientLibConstructor (
   ASSERT (FramebufferWidth != 0);
 
   PcdStatus = PcdSet32S (PcdFrameBufferWidth, FramebufferWidth);
+  ASSERT_RETURN_ERROR (PcdStatus);
+
+  /* Framebuffer stride: bytes from one row to the next, which is NOT width * 4 when the host
+     pads its rows. It pads them because the GPU transport imports this same memory as a LINEAR
+     dmabuf and the importer cannot express every pitch; a width that does not land on that
+     alignment therefore arrives here with padding, and computing the pitch ourselves would
+     shear the picture by exactly the padding on every row.
+
+     Optional on purpose. The Linux simple-framebuffer binding has always carried 'stride', but a
+     device tree from a host that never padded describes a packed layout and may omit it; the
+     fallback is the value this driver assumed for its whole life, so an old DT boots unchanged. */
+  Status = ReadPropertyInFdt (FdtClient, Node, "stride", sizeof (UINT32), &PropertyValue);
+  if (RETURN_ERROR (Status)) {
+    FramebufferStride = FramebufferWidth * SIMPLEFB_BYTES_PER_PIXEL;
+    DEBUG ((
+      DEBUG_WARN,
+      "%a: No 'stride' property found, assuming packed %u bytes per row\n",
+      __func__,
+      FramebufferStride
+      ));
+  } else {
+    FramebufferStride = (UINT32)PropertyValue;
+  }
+
+  /* A stride below the visible row is not a layout anything can draw into: it would put row N+1
+     on top of row N. Refuse the number rather than the framebuffer -- the packed layout is still
+     a coherent one, and a firmware that draws is worth more than one that is right about why it
+     could not. */
+  if (FramebufferStride < FramebufferWidth * SIMPLEFB_BYTES_PER_PIXEL) {
+    DEBUG ((
+      DEBUG_WARN,
+      "%a: 'stride' %u is below %u bytes for a %u-pixel row; using the packed layout\n",
+      __func__,
+      FramebufferStride,
+      FramebufferWidth * SIMPLEFB_BYTES_PER_PIXEL,
+      FramebufferWidth
+      ));
+    FramebufferStride = FramebufferWidth * SIMPLEFB_BYTES_PER_PIXEL;
+  }
+
+  PcdStatus = PcdSet32S (PcdFrameBufferStride, FramebufferStride);
   ASSERT_RETURN_ERROR (PcdStatus);
 
   return EFI_SUCCESS;
