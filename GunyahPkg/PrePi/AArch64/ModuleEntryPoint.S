@@ -120,6 +120,7 @@ ASM_PFX(DiscoverDramFromDt):
   mov   x0, x28
   adr   x1, PcdGet64 (PcdSystemMemoryBase)
   adr   x2, PcdGet64 (PcdSystemMemorySize)
+  mov   x3, x27             // select the bank containing the relocated firmware
   bl    FindMemnode
   cbz   x0, .Lout
 
