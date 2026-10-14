@@ -86,7 +86,17 @@ diff -ruN a/DynamicTablesPkg/Include/StandardNameSpaceObjects.h b/DynamicTablesP
 diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c
 --- a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c
 +++ b/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c
-@@ -146,6 +146,85 @@
+@@ -11,7 +11,9 @@
+   - linux/Documentation/devicetree/bindings/arm/pmu.yaml
+ **/
+ 
++#include <IndustryStandard/ArmCache.h>
+ #include <Library/ArmLib.h>
++#include <Library/BaseMemoryLib.h>
+ #include <Library/FdtLib.h>
+ #include "FdtHwInfoParser.h"
+ #include "CmObjectDescUtility.h"
+@@ -146,6 +148,85 @@
    return EFI_SUCCESS;
  }
  
@@ -172,7 +182,7 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
  /** Parse a "cpus" node and its children "cpu" nodes.
  
    Create as many CM_ARM_GICC_INFO structures as "cpu" nodes.
-@@ -247,6 +326,8 @@
+@@ -247,6 +328,8 @@
      }
    } // for
  
@@ -181,7 +191,7 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
    Status = CreateCmObjDesc (
               CREATE_CM_ARM_OBJECT_ID (EArmObjGicCInfo),
               CpuNodeCount,
-@@ -782,6 +863,198 @@
+@@ -782,6 +865,313 @@
    return EFI_SUCCESS;
  }
  
@@ -201,11 +211,78 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
 +          ((Package) | (EFI_ACPI_6_3_PPTT_PROCESSOR_ID_VALID << 1) | \
 +           ((Leaf) << 3))
 +
++/** Describe the outermost cache level reported by CLIDR on this cpu.
++
++  Only a unified cache at level 2 or above is described. Which cpus share
++  it is not architecturally discoverable; the caller assumes a level 2 cache
++  is shared by a cluster and a level 3 or higher cache by the package.
++
++  @param [out]  CacheInfo   The cache, with Token and CacheId left unset.
++
++  @retval TRUE   CacheInfo describes the last level cache.
++  @retval FALSE  There is no unified last level cache to describe.
++**/
++STATIC
++BOOLEAN
++EFIAPI
++GetLastLevelCacheInfo (
++  OUT CM_ARCH_COMMON_CACHE_INFO  *CacheInfo
++  )
++{
++  CLIDR_DATA   Clidr;
++  CSSELR_DATA  Csselr;
++  CCSIDR_DATA  Ccsidr;
++  UINT32       Level;
++  UINT32       LineSize;
++  UINT32       Associativity;
++  UINT32       NumberOfSets;
++
++  Clidr.Data = ReadCLIDR ();
++  for (Level = MAX_ARM_CACHE_LEVEL; Level > 0; Level--) {
++    if (CLIDR_GET_CACHE_TYPE (Clidr.Data, Level - 1) != ClidrCacheTypeNone) {
++      break;
++    }
++  }
++
++  if ((Level < 2) ||
++      (CLIDR_GET_CACHE_TYPE (Clidr.Data, Level - 1) != ClidrCacheTypeUnified))
++  {
++    return FALSE;
++  }
++
++  Csselr.Data       = 0;
++  Csselr.Bits.Level = Level - 1;
++  Ccsidr.Data       = ReadCCSIDR (Csselr.Data);
++  if (ArmHasCcidx ()) {
++    LineSize      = (UINT32)Ccsidr.BitsCcidxAA64.LineSize;
++    Associativity = (UINT32)Ccsidr.BitsCcidxAA64.Associativity + 1;
++    NumberOfSets  = (UINT32)Ccsidr.BitsCcidxAA64.NumSets + 1;
++  } else {
++    LineSize      = (UINT32)Ccsidr.BitsNonCcidx.LineSize;
++    Associativity = (UINT32)Ccsidr.BitsNonCcidx.Associativity + 1;
++    NumberOfSets  = (UINT32)Ccsidr.BitsNonCcidx.NumSets + 1;
++  }
++
++  ZeroMem (CacheInfo, sizeof (*CacheInfo));
++  CacheInfo->LineSize      = (UINT16)(1 << (LineSize + 4));
++  CacheInfo->Associativity = Associativity;
++  CacheInfo->NumberOfSets  = NumberOfSets;
++  CacheInfo->Size          = CacheInfo->LineSize * Associativity * NumberOfSets;
++  CacheInfo->Attributes    = EFI_ACPI_6_3_CACHE_ATTRIBUTES_ALLOCATION_READ_WRITE |
++                             (EFI_ACPI_6_3_CACHE_ATTRIBUTES_CACHE_TYPE_UNIFIED << 2) |
++                             (EFI_ACPI_6_3_CACHE_ATTRIBUTES_WRITE_POLICY_WRITE_BACK << 4);
++  CacheInfo->Level = Level - 1;
++  return TRUE;
++}
++
 +/** Parse the "cpu-map" node of the "cpus" node.
 +
 +  Create one CM_ARCH_COMMON_PROC_HIERARCHY_INFO for the physical package,
 +  one per "clusterN" node and one per "coreN" node, so that the PPTT and the
-+  SSDT CPU topology describe which cpus share a cluster. Only a single level
++  SSDT CPU topology describe which cpus share a cluster. The last level cache
++  of the boot cpu is attached to each cluster (level 2) or to the package
++  (level 3 and up), so that the guest also groups the cpus by shared cache.
++  Only a single level
 +  of clusters whose cores reference one cpu each is supported; for any other
 +  layout, or when there is no "cpu-map", nothing is created and the topology
 +  stays flat.
@@ -243,6 +320,9 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
 +  CM_ARCH_COMMON_PROC_HIERARCHY_INFO  *Nodes;
 +  CM_ARCH_COMMON_PROC_HIERARCHY_INFO  *Node;
 +  CM_OBJECT_TOKEN                     ClusterToken;
++  CM_ARCH_COMMON_CACHE_INFO           CacheInfo;
++  CM_ARCH_COMMON_OBJ_REF              CacheRef;
++  BOOLEAN                             IsPackage;
 +  UINT32                              NodeCount;
 +  UINT32                              MaxNodes;
 +  UINT32                              Index;
@@ -342,6 +422,51 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
 +    }
 +  }
 +
++  // One instance of the last level cache per cluster (level 2) or for the
++  // whole package (level 3 and up).
++  if (GetLastLevelCacheInfo (&CacheInfo)) {
++    for (Index = 0; Index < NodeCount; Index++) {
++      Node = &Nodes[Index];
++      if (Node->AcpiIdObjectToken != CM_NULL_TOKEN) {
++        continue;
++      }
++
++      IsPackage = (Node->ParentToken == CM_NULL_TOKEN);
++      if (IsPackage != (CacheInfo.Level >= 2)) {
++        continue;
++      }
++
++      CacheInfo.Token   = PROC_HIERARCHY_TOKEN (MaxNodes + Index);
++      CacheInfo.CacheId = Index + 1;
++      Status            = AddSingleCmObjWithToken (
++                            FdtParserHandle,
++                            CREATE_CM_ARCH_COMMON_OBJECT_ID (EArchCommonObjCacheInfo),
++                            &CacheInfo,
++                            sizeof (CM_ARCH_COMMON_CACHE_INFO),
++                            CacheInfo.Token
++                            );
++      if (EFI_ERROR (Status)) {
++        ASSERT (0);
++        goto exit_handler;
++      }
++
++      CacheRef.ReferenceToken = CacheInfo.Token;
++      Status                  = AddSingleCmObj (
++                                  FdtParserHandle,
++                                  CREATE_CM_ARCH_COMMON_OBJECT_ID (EArchCommonObjCmRef),
++                                  &CacheRef,
++                                  sizeof (CM_ARCH_COMMON_OBJ_REF),
++                                  &Node->PrivateResourcesArrayToken
++                                  );
++      if (EFI_ERROR (Status)) {
++        ASSERT (0);
++        goto exit_handler;
++      }
++
++      Node->NoOfPrivateResources = 1;
++    }
++  }
++
 +  for (Index = 0; Index < NodeCount; Index++) {
 +    Status = AddSingleCmObjWithToken (
 +               FdtParserHandle,
@@ -380,7 +505,7 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
  /** CM_ARM_GICC_INFO parser function.
  
    This parser expects FdtBranch to be the "\cpus" node node.
-@@ -837,6 +1110,7 @@
+@@ -837,6 +1227,7 @@
    CM_OBJ_DESCRIPTOR  *NewCmObjDesc;
    VOID               *Fdt;
    UINTN              CpuCount;
@@ -388,7 +513,7 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
  
    if (FdtParserHandle == NULL) {
      ASSERT (0);
-@@ -845,6 +1119,7 @@
+@@ -845,6 +1236,7 @@
  
    Fdt          = FdtParserHandle->Fdt;
    NewCmObjDesc = NULL;
@@ -396,7 +521,7 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
  
    // The FdtBranch points to the Cpus Node.
    // Get the interrupt-controller node associated to the "cpus" node.
-@@ -912,14 +1187,31 @@
+@@ -912,14 +1304,31 @@
      goto exit_handler;
    }
  
@@ -429,3 +554,16 @@ diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/Arm/Gic/ArmGicCParser.c 
    FreeCmObjDesc (NewCmObjDesc);
    return Status;
  }
+diff -ruN a/DynamicTablesPkg/Library/FdtHwInfoParserLib/FdtHwInfoParserLib.inf b/DynamicTablesPkg/Library/FdtHwInfoParserLib/FdtHwInfoParserLib.inf
+--- a/DynamicTablesPkg/Library/FdtHwInfoParserLib/FdtHwInfoParserLib.inf
++++ b/DynamicTablesPkg/Library/FdtHwInfoParserLib/FdtHwInfoParserLib.inf
+@@ -70,6 +70,9 @@
+   MdeModulePkg/MdeModulePkg.dec
+   MdePkg/MdePkg.dec
+ 
++[LibraryClasses.ARM, LibraryClasses.AARCH64]
++  ArmLib
++
+ [LibraryClasses]
+   BaseLib
+   BaseMemoryLib
