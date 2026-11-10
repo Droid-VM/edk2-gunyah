@@ -152,6 +152,7 @@ READ_LOCK_STATUS   = TRUE
   INF ArmVirtPkg/KvmtoolCfgMgrDxe/ConfigurationManagerDxe.inf
   INF GunyahPkg/Drivers/GunyahRestrictedDmaPoolAcpiDxe/GunyahRestrictedDmaPoolAcpiDxe.inf
   INF GunyahPkg/Drivers/GunyahPoolAcpiDxe/GunyahPoolAcpiDxe.inf
+  INF GunyahPkg/Drivers/GunyahMbiAcpiDxe/GunyahMbiAcpiDxe.inf
   INF MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
   INF OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
 !endif
