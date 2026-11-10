@@ -366,3 +366,4 @@
   }
   GunyahPkg/Drivers/GunyahRestrictedDmaPoolAcpiDxe/GunyahRestrictedDmaPoolAcpiDxe.inf
   GunyahPkg/Drivers/GunyahPoolAcpiDxe/GunyahPoolAcpiDxe.inf
+  GunyahPkg/Drivers/GunyahMbiAcpiDxe/GunyahMbiAcpiDxe.inf

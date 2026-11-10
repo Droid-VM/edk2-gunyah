@@ -48,12 +48,14 @@ NumBlocks     = 0x400
 #
 # Implement the Linux kernel header layout so that the loader will identify
 # it as something bootable, and execute it with a FDT pointer in x0 or r2.
-# This area will be reused to store a copy of the FDT so round it up to 32 KB.
+# This area will be reused to store a copy of the FDT so round it up to 128 KB: a VM with
+# many doorbells (crosvm --mbi-spis) has a tree over 32 KB once the resource manager adds
+# its /hypervisor nodes, and PrePi's copy would land on its own code.
 #
-0x00000000|0x00008000
+0x00000000|0x00020000
 DATA = {
   0x01, 0x00, 0x00, 0x10,                         # code0: adr x1, .
-  0xff, 0x1f, 0x00, 0x14,                         # code1: b 0x8000
+  0xff, 0x7f, 0x00, 0x14,                         # code1: b 0x20000
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # text_offset: 0 KB
   0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, # image_size: 4 MB
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, # flags
@@ -64,7 +66,7 @@ DATA = {
   0x00, 0x00, 0x00, 0x00                          # res5
 }
 
-0x00008000|0x3f8000
+0x00020000|0x3e0000
 gArmTokenSpaceGuid.PcdFvBaseAddress|gArmTokenSpaceGuid.PcdFvSize
 FV = FVMAIN_COMPACT
 

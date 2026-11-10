@@ -1,0 +1,38 @@
+## @file
+# GIC MSI Frame in the MADT from the device tree's MBI properties
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 0x00010005
+  BASE_NAME      = GunyahMbiAcpiDxe
+  FILE_GUID      = 6B2E1C8D-4F3A-4E7B-9C51-0D8A7F2B6E41
+  VERSION_STRING = 1.0
+  MODULE_TYPE    = DXE_DRIVER
+  ENTRY_POINT    = GunyahMbiAcpiDxeEntryPoint
+
+[Sources]
+  GunyahMbiAcpiDxe.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Protocols]
+  gFdtClientProtocolGuid
+  gEfiAcpiSdtProtocolGuid
+  gEfiAcpiTableProtocolGuid
+
+[Depex]
+  gFdtClientProtocolGuid
