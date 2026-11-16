@@ -172,7 +172,9 @@ READ_LOCK_STATUS   = TRUE
   #
   INF OvmfPkg/QemuRamfbDxe/QemuRamfbDxe.inf
   INF GunyahPkg/Drivers/SimpleFbDxe/SimpleFbDxe.inf
+!if $(VIRTIO_GPU_ENABLE) == TRUE
   INF GunyahPkg/Drivers/GunyahVirtioGpuDxe/GunyahVirtioGpu.inf
+!endif
   INF OvmfPkg/PlatformDxe/Platform.inf
 
   #

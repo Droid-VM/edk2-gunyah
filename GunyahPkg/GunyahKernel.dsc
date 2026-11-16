@@ -42,6 +42,7 @@
   DEFINE NETWORK_PXE_BOOT_ENABLE         = TRUE
 
   DEFINE PCI_CAM_MODE                    = TRUE
+  DEFINE VIRTIO_GPU_ENABLE               = TRUE  # FALSE: no UEFI driver for the virtio-gpu (a guest whose bootloader wants the simplefb GOP)
 
 # This comes at the beginning of includes to pick all relevant defines early on.
 !include ArmVirtPkg/ArmVirtStackCookies.dsc.inc
@@ -502,7 +503,9 @@
     <LibraryClasses>
     NULL|GunyahPkg/Library/SimpleFbFdtClientLib/SimpleFbFdtClientLib.inf
   }
+!if $(VIRTIO_GPU_ENABLE) == TRUE
   GunyahPkg/Drivers/GunyahVirtioGpuDxe/GunyahVirtioGpu.inf
+!endif
   OvmfPkg/PlatformDxe/Platform.inf
 
   #
